@@ -2,33 +2,35 @@ package com.smartvillage.service;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import com.smartvillage.entity.User;
 import com.smartvillage.enums.UserRole;
 
 public interface UserService {
 
-	User updateUser(long id, User user);
-	
-	User updateProfile(User user);
+    User updateUser(long id, User user);
 
-	void deleteUser(long id);
+    User updateProfile(User user);
 
-	User activeUser(long id);
+    void deleteUser(long id);
 
-	User blockUser(long id);
+    User activeUser(long id);
 
-	User getUserById(long id);
-	
-	User getAnyUserById(long id);
+    User blockUser(long id);
 
-	List<User> getAllUsers();
+    User getUserById(long id);
 
-	List<User> getUserByRole(UserRole role);
+    User getAnyUserById(long id);
 
-	User getUserByEmail(String email);
+    Page<User> getAllUsers(Pageable pageable);
 
-	List<User> getActiveUsers();
+    List<User> getUserByRole(UserRole role);
 
-	User assignRole(Long userId, UserRole role);
+    User getUserByEmail(String email);
 
+    List<User> getActiveUsers();
+
+    User assignRole(Long userId, UserRole role);
 }

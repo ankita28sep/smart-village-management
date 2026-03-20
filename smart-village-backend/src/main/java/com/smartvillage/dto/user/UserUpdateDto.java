@@ -41,12 +41,13 @@ public class UserUpdateDto {
 	public void setAddress(String address) {
 		this.address = address;
 	}
-	public Boolean isActive() {
+	public Boolean getActive() {
 		return active;
 	}
 	public void setActive(Boolean active) {
 		this.active = active;
 	}
+	
 	
 	
 

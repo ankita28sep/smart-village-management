@@ -3,7 +3,8 @@ package com.smartvillage.service.impl;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -20,114 +21,145 @@ import jakarta.transaction.Transactional;
 @Transactional
 public class UserServiceImpl implements UserService {
 
-	@Autowired
-	private UserRepository userRepository;
-	@Autowired
-	private PasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-	@Override
-	public User assignRole(Long userId, UserRole role) {
-		User user= userRepository.findById(userId)
-				.orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
-		user.setRole(role);
-		return userRepository.save(user);
-	}
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
-//UPDATE USER
-	@Override
-	public User updateUser(long id, User user) {
+    // Assign role to user
+    @Override
+    public User assignRole(Long userId, UserRole role) {
+        User user = getAnyUserById(userId);
+        user.setRole(role);
+        return userRepository.save(user);
+    }
 
-		if (user.getPassword() != null) {
-			user.setPassword(passwordEncoder.encode(user.getPassword()));
-		}
+    // Admin update user (merge fields)
+    @Override
+    public User updateUser(long id, User user) {
+        User existing = getAnyUserById(id);
 
-		user.setUpdatedAt(LocalDateTime.now());
+        if (user.getName() != null) {
+            existing.setName(user.getName());
+        }
 
-		return userRepository.save(user);
+        if (user.getEmail() != null && !user.getEmail().equals(existing.getEmail())) {
+            userRepository.findByEmail(user.getEmail()).ifPresent(u -> {
+                if (u.getId() != id) {
+                    throw new InvalidDataException("Email already in use");
+                }
+            });
+            existing.setEmail(user.getEmail());
+        }
 
-	}
+        if (user.getPassword() != null) {
+            existing.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
 
-//UPDATE PROFILE
-	@Override
-	public User updateProfile(User user) {
+        if (user.getAddress() != null) {
+            existing.setAddress(user.getAddress());
+        }
 
-		if (user.getPassword() != null) {
-			user.setPassword(passwordEncoder.encode(user.getPassword()));
-		}
+        if (user.getRole() != null) {
+            existing.setRole(user.getRole());
+        }
 
-		user.setUpdatedAt(LocalDateTime.now());
+        existing.setUpdatedAt(LocalDateTime.now());
+        return userRepository.save(existing);
+    }
 
-		return userRepository.save(user);
-	}
+    // User updates own profile
+    @Override
+    public User updateProfile(User user) {
+        if (user == null || user.getId() == 0) {
+            throw new InvalidDataException("User id is required to update profile");
+        }
 
-// DELETE USER
-	@Override
-	public void deleteUser(long id) {
-		User user = userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
-		userRepository.delete(user);
+        User existing = getAnyUserById(user.getId());
 
-	}
+        if (user.getName() != null) {
+            existing.setName(user.getName());
+        }
 
-// GET USER BY ID
-	@Override
-	public User getUserById(long id) {
-		User user = userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
+        if (user.getPassword() != null) {
+            existing.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
 
-		// CHECK STATUS
-		if (!user.isActive()) {
-			throw new InvalidDataException("User is Blocked by admin");
-		}
-		return user;
-	}
+        if (user.getAddress() != null) {
+            existing.setAddress(user.getAddress());
+        }
 
-//GET ALL USERS
-	@Override
-	public List<User> getAllUsers() {
+        existing.setUpdatedAt(LocalDateTime.now());
+        return userRepository.save(existing);
+    }
 
-		return userRepository.findAll();
-	}
+    // Delete user
+    @Override
+    public void deleteUser(long id) {
+        User user = getAnyUserById(id);
+        userRepository.delete(user);
+    }
 
-// GET USER BY ROLE
-	@Override
-	public List<User> getUserByRole(UserRole role) {
+    // Get active user by id
+    @Override
+    public User getUserById(long id) {
+        User user = getAnyUserById(id);
 
-		return userRepository.findByRole(role);
-	}
+        if (!user.isActive()) {
+            throw new InvalidDataException("User is blocked by admin");
+        }
 
-//GET USER BY EMAIL
-	@Override
-	public User getUserByEmail(String email) {
-		return userRepository.findByEmail(email)
-				.orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
-	}
+        return user;
+    }
 
-//ACTIVE USER 
-	@Override
-	public User activeUser(long id) {
-		User user = getAnyUserById(id);
-		user.setActive(true);
-		return userRepository.save(user);
-	}
+    // Get all users (for pagination)
+    @Override
+    public Page<User> getAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable);
+    }
 
-//BLOCK USER 
-	@Override
-	public User blockUser(long id) {
-		User user = getAnyUserById(id);
-		user.setActive(false);
-		return userRepository.save(user);
-	}
+    // Get users by role
+    @Override
+    public List<User> getUserByRole(UserRole role) {
+        return userRepository.findByRole(role);
+    }
 
-// GET USER BY ROLE
-	@Override
-	public List<User> getActiveUsers() {
+    // Get user by email
+    @Override
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+    }
 
-		return userRepository.findByActiveTrue();
-	}
+    // Activate user
+    @Override
+    public User activeUser(long id) {
+        User user = getAnyUserById(id);
+        user.setActive(true);
+        return userRepository.save(user);
+    }
 
-	@Override
-	public User getAnyUserById(long id) {
-		return userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
-	}
+    // Block user
+    @Override
+    public User blockUser(long id) {
+        User user = getAnyUserById(id);
+        user.setActive(false);
+        return userRepository.save(user);
+    }
 
+    // Get all active users
+    @Override
+    public List<User> getActiveUsers() {
+        return userRepository.findByActiveTrue();
+    }
 
+    // Get any user by id (no status check)
+    @Override
+    public User getAnyUserById(long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
+    }
 }

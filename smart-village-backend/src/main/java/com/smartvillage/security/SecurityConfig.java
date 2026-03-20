@@ -14,76 +14,80 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.stereotype.Component;
-@Component
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-
 public class SecurityConfig {
 
-	private final CustomUserDetailsService userDetailsService;
-	private final JwtAuthenticationFilter jwtFilter;
-	private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
-	private final CustomAccessDeniedHandler customAccessDeniedHandler;
-	
+    private final CustomUserDetailsService userDetailsService;
+    private final JwtAuthenticationFilter jwtFilter;
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+    private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
-	public SecurityConfig(CustomUserDetailsService userDetailsService, 
-			JwtAuthenticationFilter jwtFilter,CustomAuthenticationEntryPoint customAuthenticationEntryPoint,
+    public SecurityConfig(
+            CustomUserDetailsService userDetailsService,
+            JwtAuthenticationFilter jwtFilter,
+            CustomAuthenticationEntryPoint customAuthenticationEntryPoint,
             CustomAccessDeniedHandler customAccessDeniedHandler) {
-		this.userDetailsService = userDetailsService;
-		this.jwtFilter = jwtFilter;
-		this.customAuthenticationEntryPoint = new CustomAuthenticationEntryPoint();
-		this.customAccessDeniedHandler = new CustomAccessDeniedHandler();
-		
-	}
 
-	@Bean
-	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-		http
-	    .csrf(csrf -> csrf.disable())
-	   
-	    .authorizeHttpRequests(auth -> auth
-	    		.requestMatchers(
-	    			    "/auth/**",
-	    			    "/schemes/active",
-	    			    "/schemes/{id}",
-	    			    "/schemes/search/**",
-	    			    "/schemes/by-eligibility",
-	    			    "/announcements/active",
-	    			    "/announcements/search/**"
-	    			).permitAll()
-	    		.anyRequest().authenticated()
-	    )
-	    .exceptionHandling(ex -> ex
-	            .authenticationEntryPoint(customAuthenticationEntryPoint)
-	            .accessDeniedHandler(customAccessDeniedHandler)
-	    )
-	    .sessionManagement(session ->
-	        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-	    )
-	    .authenticationProvider(authenticationProvider())
-	    .addFilterBefore(jwtFilter,
-	            UsernamePasswordAuthenticationFilter.class);
-		return http.build();
-	}
+        this.userDetailsService = userDetailsService;
+        this.jwtFilter = jwtFilter;
+        this.customAuthenticationEntryPoint = customAuthenticationEntryPoint;
+        this.customAccessDeniedHandler = customAccessDeniedHandler;
+    }
 
-	
-	@Bean
-	public AuthenticationProvider authenticationProvider() {
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-	    DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-	    provider.setUserDetailsService(userDetailsService);
-	    provider.setPasswordEncoder(passwordEncoder()); // call bean method directly
+        http
+            .csrf(csrf -> csrf.disable())
 
-	    return provider;
-	}
-	@Bean
-	public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-		return config.getAuthenticationManager();
-	}
-	@Bean
-	public PasswordEncoder passwordEncoder() {
-	    return new BCryptPasswordEncoder();
-	}
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(
+                    "/auth/**",
+                    "/schemes/active",
+                    "/schemes/{id}",
+                    "/schemes/search/**",
+                    "/schemes/by-eligibility",
+                    "/announcements/active",
+                    "/announcements/search/**"
+                ).permitAll()
+                .anyRequest().authenticated()
+            )
+
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint(customAuthenticationEntryPoint)
+                .accessDeniedHandler(customAccessDeniedHandler)
+            )
+
+            .sessionManagement(session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+
+            .authenticationProvider(authenticationProvider())
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+    @Bean
+    public AuthenticationProvider authenticationProvider() {
+
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder());
+
+        return provider;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 }

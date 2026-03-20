@@ -1,21 +1,15 @@
 package com.smartvillage.controller;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.smartvillage.dto.user.UserResponseDto;
 import com.smartvillage.dto.user.UserUpdateDto;
@@ -31,95 +25,121 @@ import jakarta.validation.Valid;
 @Validated
 @RequestMapping("/users")
 public class UserController {
-	@Autowired
-	UserService userService;
-	
-	@PreAuthorize("hasRole('ADMIN')")
-	@PutMapping("/assign-role/{userId}")
-	public UserResponseDto assignRole(@PathVariable Long userId,
-	                                  @RequestParam UserRole role) {
 
-	  
-	    return UserMapper.toDto(userService.assignRole(userId, role));
-	}
+    private final UserService userService;
 
-	//ADMIN  UPDATE
-	@PreAuthorize("hasRole('ADMIN')")
-	@PutMapping("/admin/update/{id}")
-	public UserResponseDto updateUser(@PathVariable long id, @Valid @RequestBody UserUpdateDto dto) {
-		User user = userService.getAnyUserById(id);
-		UserMapper.updateEntity(user, dto);
-		User saved = userService.updateUser(id, user);
-		return UserMapper.toDto(saved);
-	}
+    // Constructor injection instead of field injection
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
 
-	// UPDATE
-	@PreAuthorize("isAuthenticated()")
-	@PutMapping("/update-profile")
-	public UserResponseDto updateProfile(@Valid @RequestBody UserUpdateProfileDto dto) {
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		String email=authentication.getName();
-		User user = userService.getUserByEmail(email);
-		UserMapper.updateUserProfile(user, dto);
-		User saved = userService.updateProfile(user);
-		return UserMapper.toDto(saved);
-	}
+    // Assign role to a user (Admin only)
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/assign-role/{userId}")
+    public ResponseEntity<UserResponseDto> assignRole(@PathVariable Long userId,
+                                                      @RequestParam UserRole role) {
+        User user = userService.assignRole(userId, role);
+        return ResponseEntity.ok(UserMapper.toDto(user));
+    }
 
-	// DELETE
-	@PreAuthorize("hasRole('ADMIN')")
-	@DeleteMapping("/delete/{id}")
-	public String deleteUser(@PathVariable long id) {
-		userService.deleteUser(id);
-		return "User with ID " + id + " has been deleted.";
-	}
+    // Admin updates user details
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/admin/update/{id}")
+    public ResponseEntity<UserResponseDto> updateUser(
+            @PathVariable long id,
+            @Valid @RequestBody UserUpdateDto dto) {
 
-	// GET USER BY ID
-	@PreAuthorize("isAuthenticated()")
-	@GetMapping("/byId/{id}")
-	public UserResponseDto getUserById(@PathVariable long id) {
-		return UserMapper.toDto(userService.getUserById(id));
-	}
+        User user = userService.getAnyUserById(id);
+        UserMapper.updateEntity(user, dto);
+        User updatedUser = userService.updateUser(id, user);
 
-	// GET USERS FOR ADMIN
-	@PreAuthorize("hasRole('ADMIN')")
-	@GetMapping("/admin/byId/{id}")
-	public UserResponseDto getAnyUserById(@PathVariable long id) {
-		return UserMapper.toDto(userService.getAnyUserById(id));
-	}
+        return ResponseEntity.ok(UserMapper.toDto(updatedUser));
+    }
 
-	// GET ALL USERS
-	@PreAuthorize("hasRole('ADMIN')")
-	@GetMapping("/getAll")
-	public List<UserResponseDto> getAllUsers() {
-		return userService.getAllUsers().stream().map(UserMapper::toDto).collect(Collectors.toList());
-	}
+    // Logged-in user updates own profile
+    @PreAuthorize("isAuthenticated()")
+    @PutMapping("/update-profile")
+    public ResponseEntity<UserResponseDto> updateProfile(
+            Principal principal,
+            @Valid @RequestBody UserUpdateProfileDto dto) {
 
-	// GET USERS BY ROLE
-	@PreAuthorize("hasRole('ADMIN')")
-	@GetMapping("/byRole")
-	public List<UserResponseDto> getUserByRole(@RequestParam UserRole role) {
-		return userService.getUserByRole(role).stream().map(UserMapper::toDto).collect(Collectors.toList());
-	}
+        String email = principal.getName();
+        User user = userService.getUserByEmail(email);
 
-	// ACTIVE USER
-	@PreAuthorize("hasRole('ADMIN')")
-	@PutMapping("/activate/{id}")
-	public UserResponseDto activeUser(@PathVariable long id) {
-		return UserMapper.toDto(userService.activeUser(id));
-	}
+        UserMapper.updateUserProfile(user, dto);
+        User updatedUser = userService.updateProfile(user);
 
-	// BLOCK USER
-	@PreAuthorize("hasRole('ADMIN')")
-	@PutMapping("/block/{id}")
-	public UserResponseDto blockUser(@PathVariable long id) {
-		return UserMapper.toDto(userService.blockUser(id));
-	}
+        return ResponseEntity.ok(UserMapper.toDto(updatedUser));
+    }
 
-	// GET ACTIVE USERS
-	@PreAuthorize("hasRole('ADMIN')")
-	@GetMapping("/active-users")
-	public List<UserResponseDto> getActiveUsers() {
-		return userService.getActiveUsers().stream().map(UserMapper::toDto).collect(Collectors.toList());
-	}
+    // Delete user by ID (Admin only)
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable long id) {
+        userService.deleteUser(id);
+        return ResponseEntity.noContent().build();
+    }
 
+    // Get user by ID (accessible to authenticated users)
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/{id}")
+    public ResponseEntity<UserResponseDto> getUserById(@PathVariable long id) {
+        User user = userService.getUserById(id);
+        return ResponseEntity.ok(UserMapper.toDto(user));
+    }
+
+    // Admin can fetch any user by ID
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/admin/{id}")
+    public ResponseEntity<UserResponseDto> getAnyUserById(@PathVariable long id) {
+        User user = userService.getAnyUserById(id);
+        return ResponseEntity.ok(UserMapper.toDto(user));
+    }
+
+    // Get all users with pagination
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping
+    public ResponseEntity<Page<UserResponseDto>> getAllUsers(Pageable pageable) {
+        Page<User> users = userService.getAllUsers(pageable);
+        Page<UserResponseDto> dtoPage = users.map(UserMapper::toDto);
+        return ResponseEntity.ok(dtoPage);
+    }
+
+    // Get users by role
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/by-role")
+    public ResponseEntity<List<UserResponseDto>> getUsersByRole(@RequestParam UserRole role) {
+        List<UserResponseDto> users = userService.getUserByRole(role)
+                .stream()
+                .map(UserMapper::toDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(users);
+    }
+
+    // Activate a user account
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/activate/{id}")
+    public ResponseEntity<UserResponseDto> activateUser(@PathVariable long id) {
+        User user = userService.activeUser(id);
+        return ResponseEntity.ok(UserMapper.toDto(user));
+    }
+
+    // Block a user account
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/block/{id}")
+    public ResponseEntity<UserResponseDto> blockUser(@PathVariable long id) {
+        User user = userService.blockUser(id);
+        return ResponseEntity.ok(UserMapper.toDto(user));
+    }
+
+    // Get all active users
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/active")
+    public ResponseEntity<List<UserResponseDto>> getActiveUsers() {
+        List<UserResponseDto> users = userService.getActiveUsers()
+                .stream()
+                .map(UserMapper::toDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(users);
+    }
 }
