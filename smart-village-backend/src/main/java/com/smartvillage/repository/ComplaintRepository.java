@@ -1,27 +1,23 @@
 package com.smartvillage.repository;
 
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.smartvillage.entity.Complaint;
 import com.smartvillage.enums.ComplaintStatus;
 
 public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
-	boolean existsByTitleIgnoreCase(String title);
-	
-    Optional<Complaint> findFirstByTitleContainingIgnoreCase(String title);
-	
-	List<Complaint>findByTitleContainingIgnoreCase(String keyword);
 
-	List<Complaint> findByStatus(ComplaintStatus status);
+    Page<Complaint> findByCitizen_Id(long citizenId, Pageable pageable);
 
-	List<Complaint> findByCreatedAtAfter(LocalDate since);
+    Page<Complaint> findByHandledBy_Id(long handlerId, Pageable pageable);
 
-	List<Complaint> findByCitizen_Id(long citizenId);
+    Page<Complaint> findByStatus(ComplaintStatus status, Pageable pageable);
 
-	List<Complaint> findByHandledBy_Id(long handledById);
+    Page<Complaint> findByTitleContainingIgnoreCase(String keyword, Pageable pageable);
 
+    Page<Complaint> findByCreatedAtAfter(LocalDate since, Pageable pageable);
 }

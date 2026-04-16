@@ -1,7 +1,5 @@
 package com.smartvillage.service;
 
-import java.util.List;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -26,11 +24,11 @@ public interface UserService {
 
     Page<User> getAllUsers(Pageable pageable);
 
-    List<User> getUserByRole(UserRole role);
+    Page<User> getUserByRole(UserRole role, Pageable pageable);
+
+    Page<User> getActiveUsers(Pageable pageable);
 
     User getUserByEmail(String email);
-
-    List<User> getActiveUsers();
 
     User assignRole(Long userId, UserRole role);
 }

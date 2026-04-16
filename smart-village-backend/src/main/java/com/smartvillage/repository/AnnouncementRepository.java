@@ -1,9 +1,9 @@
 package com.smartvillage.repository;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.smartvillage.entity.Announcement;
@@ -11,16 +11,16 @@ import com.smartvillage.enums.AnnouncementStatus;
 import com.smartvillage.enums.AnnouncementType;
 
 public interface AnnouncementRepository extends JpaRepository<Announcement, Long> {
-	List<Announcement> findByTitleContainingIgnoreCase(String title);
+	boolean existsByTitleIgnoreCase(String title);
 
-	List<Announcement> findByType(AnnouncementType type);
+	Page<Announcement> findByPostedBy_Id(long postedById, Pageable pageable);
 
-	List<Announcement> findByStatus(AnnouncementStatus status);
+	Page<Announcement> findByTitleContainingIgnoreCase(String title, Pageable pageable);
 
-	Optional<Announcement> findFirstByTitleContainingIgnoreCase(String title);
+	Page<Announcement> findByPostedAtAfter(LocalDateTime since, Pageable pageable);
 
-	List<Announcement> findByPostedBy_Id(long userId);
+	Page<Announcement> findByType(AnnouncementType type, Pageable pageable);
 
-	List<Announcement> findByPostedAtAfter(LocalDateTime start);
+	Page<Announcement> findByStatus(AnnouncementStatus status, Pageable pageable);
 
 }

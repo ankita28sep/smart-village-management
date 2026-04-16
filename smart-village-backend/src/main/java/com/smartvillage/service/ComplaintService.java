@@ -1,34 +1,36 @@
 package com.smartvillage.service;
 
 import java.time.LocalDate;
-import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import com.smartvillage.entity.Complaint;
 import com.smartvillage.enums.ComplaintStatus;
 
 public interface ComplaintService {
-	Complaint raiseComplaint(Complaint complaint);
 
-	Complaint updateComplaint(long id, Complaint complaint);
+    Complaint raiseComplaint(Complaint complaint);
 
-	void deleteComplaint(long id);
+    Complaint updateComplaint(long id, Complaint complaint);
 
-	Complaint assignHandler(long id, long handledBy_id);
+    void deleteComplaint(long id);
 
-	Complaint updateStatus(long id, ComplaintStatus status);
+    Complaint assignHandler(long id, long handledById);
 
-	Complaint getComplaintById(long id);
+    Complaint updateStatus(long id, ComplaintStatus status);
 
-	List<Complaint> getAllComplaints();
+    Complaint getComplaintById(long id);
 
-	List<Complaint> getComplaintByCitizenId(long citizenId);
+    Page<Complaint> getAllComplaints(Pageable pageable);
 
-	List<Complaint> getComplaintByStatus(ComplaintStatus status);
+    Page<Complaint> getComplaintByCitizenId(long citizenId, Pageable pageable);
 
-	List<Complaint> getComplaintByHandlerId(long handlerId);
+    Page<Complaint> getComplaintByStatus(ComplaintStatus status, Pageable pageable);
 
-	List<Complaint> searchComplaints(String keyword);
+    Page<Complaint> getComplaintByHandlerId(long handlerId, Pageable pageable);
 
-	List<Complaint> getRecentComplaints(LocalDate since);
+    Page<Complaint> searchComplaints(String keyword, Pageable pageable);
 
+    Page<Complaint> getRecentComplaints(LocalDate since, Pageable pageable);
 }

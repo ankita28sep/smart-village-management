@@ -1,36 +1,47 @@
 package com.smartvillage.service;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import com.smartvillage.entity.Scheme;
 
 public interface SchemeService {
-	Scheme createScheme(Scheme scheme);
 
-	Scheme updateScheme(long id, Scheme scheme);
+    // Create scheme
+    Scheme createScheme(Scheme scheme);
 
-	void deleteScheme(long id);
+    // Update scheme
+    Scheme updateScheme(long id, Scheme scheme);
 
-	Scheme getSchemeById(long id);
+    // Delete scheme
+    void deleteScheme(long id);
 
-	List<Scheme> getAllSchemes();
+    // Get scheme by ID
+    Scheme getSchemeById(long id);
 
-	List<Scheme> getActiveSchemes();
+    // Get all schemes (PAGINATED)
+    Page<Scheme> getAllSchemes(Pageable pageable);
 
-	List<Scheme> getSchemesByPostedById(long userId);
+    // Get active schemes (PAGINATED)
+    Page<Scheme> getActiveSchemes(Pageable pageable);
 
-	List<Scheme> searchSchemes(String name);
+    // Get schemes by posted user (PAGINATED)
+    Page<Scheme> getSchemesByPostedById(long userId, Pageable pageable);
 
-	Scheme deactivateScheme(long id);
-	List<Scheme> findByEligibility(
-	        Integer financialYear,
-	        String religion,
-	        String casteCategory,
-	        Double annualIncome,
-	        Boolean disability,
-	        String department
-	);
-	
-	
+    // Search schemes (PAGINATED)
+    Page<Scheme> searchSchemes(String name, Pageable pageable);
 
+    // Deactivate scheme
+    Scheme deactivateScheme(long id);
+
+    // Filter by eligibility (PAGINATED)
+    Page<Scheme> findByEligibility(
+            Integer financialYear,
+            String religion,
+            String casteCategory,
+            Double annualIncome,
+            Boolean disability,
+            String department,
+            Pageable pageable
+    );
 }

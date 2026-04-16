@@ -1,32 +1,35 @@
 package com.smartvillage.service;
 
 import java.time.LocalDateTime;
-import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import com.smartvillage.entity.Announcement;
 import com.smartvillage.enums.AnnouncementStatus;
 import com.smartvillage.enums.AnnouncementType;
 
 public interface AnnouncementService {
-	Announcement postAnnouncement(Announcement announcement);
 
-	Announcement updateAnnouncement(long id, Announcement announcement);
+    Announcement postAnnouncement(Announcement announcement);
 
-	void deleteAnnouncement(long id);
+    Announcement updateAnnouncement(long id, Announcement announcement);
 
-	Announcement getAnnouncementById(long id);
+    void deleteAnnouncement(long id);
 
-	List<Announcement> getAllAnnouncements();
-	List<Announcement>findByActiveTrue();
+    Announcement getAnnouncementById(long id);
 
-	List<Announcement> getAnnouncementsPostedBy(long postedById);
+    Page<Announcement> getAllAnnouncements(Pageable pageable);
 
-	List<Announcement> searchAnnouncement(String name);
+    Page<Announcement> findByActiveTrue(Pageable pageable);
 
-	List<Announcement> getRecentAnnouncements(LocalDateTime since);
+    Page<Announcement> getAnnouncementsPostedBy(long postedById, Pageable pageable);
 
-	List<Announcement> getAnnouncementsByType(AnnouncementType type);
+    Page<Announcement> searchAnnouncement(String name, Pageable pageable);
 
-	List<Announcement> getAnnouncementsByStatus(AnnouncementStatus status);
+    Page<Announcement> getRecentAnnouncements(LocalDateTime since, Pageable pageable);
 
+    Page<Announcement> getAnnouncementsByType(AnnouncementType type, Pageable pageable);
+
+    Page<Announcement> getAnnouncementsByStatus(AnnouncementStatus status, Pageable pageable);
 }

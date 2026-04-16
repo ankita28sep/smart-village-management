@@ -1,8 +1,6 @@
 package com.smartvillage.controller;
 
 import java.security.Principal;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,7 +26,6 @@ public class UserController {
 
     private final UserService userService;
 
-    // Constructor injection instead of field injection
     public UserController(UserService userService) {
         this.userService = userService;
     }
@@ -72,7 +69,7 @@ public class UserController {
         return ResponseEntity.ok(UserMapper.toDto(updatedUser));
     }
 
-    // Delete user by ID (Admin only)
+    // Delete user
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable long id) {
@@ -80,7 +77,7 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
-    // Get user by ID (accessible to authenticated users)
+    // Get user by ID
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/{id}")
     public ResponseEntity<UserResponseDto> getUserById(@PathVariable long id) {
@@ -88,7 +85,7 @@ public class UserController {
         return ResponseEntity.ok(UserMapper.toDto(user));
     }
 
-    // Admin can fetch any user by ID
+    // Admin fetch any user
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/admin/{id}")
     public ResponseEntity<UserResponseDto> getAnyUserById(@PathVariable long id) {
@@ -96,27 +93,30 @@ public class UserController {
         return ResponseEntity.ok(UserMapper.toDto(user));
     }
 
-    // Get all users with pagination
+    // Get all users (pagination)
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<Page<UserResponseDto>> getAllUsers(Pageable pageable) {
-        Page<User> users = userService.getAllUsers(pageable);
-        Page<UserResponseDto> dtoPage = users.map(UserMapper::toDto);
-        return ResponseEntity.ok(dtoPage);
+        return ResponseEntity.ok(
+                userService.getAllUsers(pageable)
+                           .map(UserMapper::toDto)
+        );
     }
 
-    // Get users by role
+    // Get users by role (pagination)
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/by-role")
-    public ResponseEntity<List<UserResponseDto>> getUsersByRole(@RequestParam UserRole role) {
-        List<UserResponseDto> users = userService.getUserByRole(role)
-                .stream()
-                .map(UserMapper::toDto)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(users);
+    public ResponseEntity<Page<UserResponseDto>> getUsersByRole(
+            @RequestParam UserRole role,
+            Pageable pageable) {
+
+        return ResponseEntity.ok(
+                userService.getUserByRole(role, pageable)
+                           .map(UserMapper::toDto)
+        );
     }
 
-    // Activate a user account
+    // Activate user
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/activate/{id}")
     public ResponseEntity<UserResponseDto> activateUser(@PathVariable long id) {
@@ -124,7 +124,7 @@ public class UserController {
         return ResponseEntity.ok(UserMapper.toDto(user));
     }
 
-    // Block a user account
+    // Block user
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/block/{id}")
     public ResponseEntity<UserResponseDto> blockUser(@PathVariable long id) {
@@ -132,14 +132,14 @@ public class UserController {
         return ResponseEntity.ok(UserMapper.toDto(user));
     }
 
-    // Get all active users
+    // Get active users (pagination)
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/active")
-    public ResponseEntity<List<UserResponseDto>> getActiveUsers() {
-        List<UserResponseDto> users = userService.getActiveUsers()
-                .stream()
-                .map(UserMapper::toDto)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(users);
+    public ResponseEntity<Page<UserResponseDto>> getActiveUsers(Pageable pageable) {
+
+        return ResponseEntity.ok(
+                userService.getActiveUsers(pageable)
+                           .map(UserMapper::toDto)
+        );
     }
 }

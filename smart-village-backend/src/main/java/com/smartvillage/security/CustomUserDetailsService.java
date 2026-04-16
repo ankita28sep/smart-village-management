@@ -1,23 +1,30 @@
 package com.smartvillage.security;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import com.smartvillage.entity.User;
-import com.smartvillage.exceptions.ResourceNotFoundException;
 import com.smartvillage.repository.UserRepository;
+
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
-	@Autowired
-	private UserRepository repo;
-	@Override
-	public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-		
-		User user=repo.findByEmail(email).
-				orElseThrow(()->new ResourceNotFoundException("user not found with email: "+email));
+
+    private final UserRepository userRepository;
+
+    public CustomUserDetailsService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String email)
+            throws UsernameNotFoundException {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new UsernameNotFoundException("User not found with email: " + email));
+
         return org.springframework.security.core.userdetails.User
                 .builder()
                 .username(user.getEmail())
@@ -25,8 +32,5 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .roles(user.getRole().name())
                 .disabled(!user.isActive())
                 .build();
-
-	}
-	
-
+    }
 }

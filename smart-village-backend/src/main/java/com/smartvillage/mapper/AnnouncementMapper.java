@@ -24,11 +24,11 @@ public class AnnouncementMapper {
 		dto.setId(announcement.getId());
 		dto.setTitle(announcement.getTitle());
 		dto.setContent(announcement.getContent());
-		dto.setPostedAt(announcement.getPostedAt().toString());
+		dto.setPostedAt(announcement.getPostedAt());
 		if(announcement.getPostedBy()!=null) {
 			dto.setPostedByName(announcement.getPostedBy().getName());
 		dto.setStatus(announcement.getStatus());
-		dto.setType(announcement.getType().name());
+		dto.setType(announcement.getType());
 		
 		}
 		

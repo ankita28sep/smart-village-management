@@ -1,21 +1,13 @@
 package com.smartvillage.controller;
 
-import java.util.List;
+import java.security.Principal;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.smartvillage.dto.scheme.SchemeRequestDto;
 import com.smartvillage.dto.scheme.SchemeResponseDto;
@@ -32,77 +24,120 @@ import jakarta.validation.Valid;
 @RequestMapping("/schemes")
 @Validated
 public class SchemeController {
-	@Autowired
-	private SchemeService schemeService;
-	@Autowired
-	private UserService userService;
 
-	@PreAuthorize("hasRole('ADMIN')")
-	@PostMapping("/add")
-	public SchemeResponseDto addScheme(@Valid @RequestBody SchemeRequestDto dto) {
-		Authentication auth=SecurityContextHolder
-				.getContext()
-				.getAuthentication();
-		String email=auth.getName();
-		User postedBy = userService.getUserByEmail(email);
-		Scheme scheme = SchemeMapper.toEntity(dto, postedBy);
-		return SchemeMapper.toDto(schemeService.createScheme(scheme));
-	}
+    private final SchemeService schemeService;
+    private final UserService userService;
 
-	@PreAuthorize("hasRole('ADMIN')")
-	@PutMapping("/update/{id}")
-	public SchemeResponseDto updateScheme(@PathVariable long id, @Valid @RequestBody SchemeUpdateDto dto) {
-		Scheme scheme = schemeService.getSchemeById(id);
-		SchemeMapper.updateEntity(scheme, dto);
-		return SchemeMapper.toDto(schemeService.updateScheme(id, scheme));
-	}
+    public SchemeController(SchemeService schemeService, UserService userService) {
+        this.schemeService = schemeService;
+        this.userService = userService;
+    }
 
-	@PreAuthorize("hasRole('ADMIN')")
-	@DeleteMapping("/delete/{id}")
-	public String deleteScheme(@PathVariable long id) {
-		schemeService.deleteScheme(id);
-		return "Scheme deleted successfully";
-	}
+    // Create scheme
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping
+    public ResponseEntity<SchemeResponseDto> addScheme(@Valid @RequestBody SchemeRequestDto dto,
+                                                       Principal principal) {
 
-	@PreAuthorize("hasRole('ADMIN')")
-	@PutMapping("/deactivate/{id}")
-	public SchemeResponseDto deactivateScheme(@PathVariable long id) {
-		return SchemeMapper.toDto(schemeService.deactivateScheme(id));
-	}
+        String email = principal.getName();
+        User postedBy = userService.getUserByEmail(email);
 
-	@GetMapping("/{id}")
-	public SchemeResponseDto getSchemeById(@PathVariable long id) {
-		return SchemeMapper.toDto(schemeService.getSchemeById(id));
-	}
+        Scheme scheme = SchemeMapper.toEntity(dto, postedBy);
 
-	@GetMapping("/active")
-	public List<SchemeResponseDto> getActiveSchemes() {
-		return schemeService.getActiveSchemes().stream().map(SchemeMapper::toDto).toList();
-	}
-	@PreAuthorize("hasRole('ADMIN')")
-	@GetMapping("/all")
-	public List<SchemeResponseDto> getAllSchemes() {
-		return schemeService.getAllSchemes().stream().map(SchemeMapper::toDto).toList();
-	}
-	@PreAuthorize("hasRole('ADMIN')")
-	@GetMapping("/posted-by/{postedById}")
-	public List<SchemeResponseDto> getSchemesByPostedBy_Id(@PathVariable long postedById) {
-		return schemeService.getSchemesByPostedById(postedById).stream().map(SchemeMapper::toDto).toList();
-	}
+        return ResponseEntity.ok(SchemeMapper.toDto(schemeService.createScheme(scheme)));
+    }
 
-	@GetMapping("/search/{name}")
-	public List<SchemeResponseDto> searchSchemes(@PathVariable String name) {
-		return schemeService.searchSchemes(name).stream().map(SchemeMapper::toDto).toList();
-	}
+    // Update scheme
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}")
+    public ResponseEntity<SchemeResponseDto> updateScheme(@PathVariable long id,
+                                                          @Valid @RequestBody SchemeUpdateDto dto) {
 
-	@GetMapping("/by-eligibility")
-	public List<SchemeResponseDto> findByEligibility(@RequestParam(required = false) Integer financialYear,
-			@RequestParam(required = false) String religion, @RequestParam(required = false) String casteCategory,
-			@RequestParam(required = false) Double annualIncome, @RequestParam(required = false) Boolean disability,
-			@RequestParam(required = false) String department) {
-		return schemeService
-				.findByEligibility(financialYear, religion, casteCategory, annualIncome, disability, department)
-				.stream().map(SchemeMapper::toDto).toList();
-	}
+        Scheme scheme = schemeService.getSchemeById(id);
+        SchemeMapper.updateEntity(scheme, dto);
 
+        return ResponseEntity.ok(SchemeMapper.toDto(schemeService.updateScheme(id, scheme)));
+    }
+
+    // Delete scheme
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteScheme(@PathVariable long id) {
+        schemeService.deleteScheme(id);
+        return ResponseEntity.ok("Scheme deleted successfully");
+    }
+
+    // Deactivate scheme
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}/deactivate")
+    public ResponseEntity<SchemeResponseDto> deactivateScheme(@PathVariable long id) {
+        return ResponseEntity.ok(SchemeMapper.toDto(schemeService.deactivateScheme(id)));
+    }
+
+    // Get scheme by ID
+    @GetMapping("/{id}")
+    public ResponseEntity<SchemeResponseDto> getSchemeById(@PathVariable long id) {
+        return ResponseEntity.ok(SchemeMapper.toDto(schemeService.getSchemeById(id)));
+    }
+
+    // Get active schemes (PAGINATED)
+    @GetMapping("/active")
+    public ResponseEntity<Page<SchemeResponseDto>> getActiveSchemes(Pageable pageable) {
+
+        Page<Scheme> schemes = schemeService.getActiveSchemes(pageable);
+
+        Page<SchemeResponseDto> dtoPage = schemes.map(SchemeMapper::toDto);
+
+        return ResponseEntity.ok(dtoPage);
+    }
+
+    // Get all schemes (ADMIN + PAGINATED)
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping
+    public ResponseEntity<Page<SchemeResponseDto>> getAllSchemes(Pageable pageable) {
+
+        Page<Scheme> schemes = schemeService.getAllSchemes(pageable);
+
+        return ResponseEntity.ok(schemes.map(SchemeMapper::toDto));
+    }
+
+    // Get schemes by posted user (PAGINATED)
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/posted-by/{postedById}")
+    public ResponseEntity<Page<SchemeResponseDto>> getSchemesByPostedById(
+            @PathVariable long postedById,
+            Pageable pageable) {
+
+        Page<Scheme> schemes = schemeService.getSchemesByPostedById(postedById, pageable);
+
+        return ResponseEntity.ok(schemes.map(SchemeMapper::toDto));
+    }
+
+    // Search schemes (PAGINATED)
+    @GetMapping("/search")
+    public ResponseEntity<Page<SchemeResponseDto>> searchSchemes(
+            @RequestParam String name,
+            Pageable pageable) {
+
+        Page<Scheme> schemes = schemeService.searchSchemes(name, pageable);
+
+        return ResponseEntity.ok(schemes.map(SchemeMapper::toDto));
+    }
+
+    // Filter schemes by eligibility (PAGINATED)
+    @GetMapping("/eligibility")
+    public ResponseEntity<Page<SchemeResponseDto>> findByEligibility(
+            @RequestParam(required = false) Integer financialYear,
+            @RequestParam(required = false) String religion,
+            @RequestParam(required = false) String casteCategory,
+            @RequestParam(required = false) Double annualIncome,
+            @RequestParam(required = false) Boolean disability,
+            @RequestParam(required = false) String department,
+            Pageable pageable) {
+
+        Page<Scheme> schemes = schemeService.findByEligibility(
+                financialYear, religion, casteCategory, annualIncome, disability, department, pageable);
+
+        return ResponseEntity.ok(schemes.map(SchemeMapper::toDto));
+    }
 }

@@ -1,7 +1,6 @@
 package com.smartvillage.service.impl;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -115,16 +114,22 @@ public class UserServiceImpl implements UserService {
         return user;
     }
 
-    // Get all users (for pagination)
+    // Get all users (pagination)
     @Override
     public Page<User> getAllUsers(Pageable pageable) {
         return userRepository.findAll(pageable);
     }
 
-    // Get users by role
+    // Get users by role (pagination)
     @Override
-    public List<User> getUserByRole(UserRole role) {
-        return userRepository.findByRole(role);
+    public Page<User> getUserByRole(UserRole role, Pageable pageable) {
+        return userRepository.findByRole(role, pageable);
+    }
+
+    // Get active users (pagination)
+    @Override
+    public Page<User> getActiveUsers(Pageable pageable) {
+        return userRepository.findByActiveTrue(pageable);
     }
 
     // Get user by email
@@ -148,12 +153,6 @@ public class UserServiceImpl implements UserService {
         User user = getAnyUserById(id);
         user.setActive(false);
         return userRepository.save(user);
-    }
-
-    // Get all active users
-    @Override
-    public List<User> getActiveUsers() {
-        return userRepository.findByActiveTrue();
     }
 
     // Get any user by id (no status check)

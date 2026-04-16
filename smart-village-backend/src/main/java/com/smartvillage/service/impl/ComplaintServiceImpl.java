@@ -1,11 +1,9 @@
 package com.smartvillage.service.impl;
 
 import java.time.LocalDate;
-import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.smartvillage.entity.Complaint;
@@ -23,137 +21,127 @@ import jakarta.transaction.Transactional;
 @Service
 @Transactional
 public class ComplaintServiceImpl implements ComplaintService {
-	@Autowired
-	private ComplaintRepository complaintRepository;
-	@Autowired
-	private UserService userService;
 
-	// RAISE COMPLAINT
-	@Override
-	public Complaint raiseComplaint(Complaint complaint) {
+    private final ComplaintRepository complaintRepository;
+    private final UserService userService;
 
-		if (complaint.getCitizen() == null) {
-			throw new InvalidDataException("Citizen is required");
-		}
+    public ComplaintServiceImpl(ComplaintRepository complaintRepository,
+                                UserService userService) {
+        this.complaintRepository = complaintRepository;
+        this.userService = userService;
+    }
 
-		if (!complaint.getCitizen().isActive()) {
-			throw new InvalidDataException("User is blocked");
-		}
+    // RAISE COMPLAINT
+    @Override
+    public Complaint raiseComplaint(Complaint complaint) {
 
-		complaint.setCitizen(userService.getUserById(complaint.getCitizen().getId()));
+        if (complaint.getCitizen() == null) {
+            throw new InvalidDataException("Citizen is required");
+        }
 
-		complaint.setStatus(ComplaintStatus.PENDING);
-		return complaintRepository.save(complaint);
+        User citizen = userService.getUserById(complaint.getCitizen().getId());
 
-	}
+        if (!citizen.isActive()) {
+            throw new InvalidDataException("User is blocked");
+        }
 
-	// UPDATE COMPLAINT
-	@Override
-	public Complaint updateComplaint(long id, Complaint complaint) {
+        complaint.setCitizen(citizen);
+        complaint.setStatus(ComplaintStatus.PENDING);
 
-		return complaintRepository.save(complaint);
-	}
+        return complaintRepository.save(complaint);
+    }
 
-	// DELETE COMPLAINT
-	@Override
-	public void deleteComplaint(long id) {
+    @Override
+    public Complaint updateComplaint(long id, Complaint complaint) {
+        return complaintRepository.save(complaint);
+    }
 
-		Complaint complaint = this.getComplaintIfOwner(id);
-		complaintRepository.delete(complaint);
-	}
+    // DELETE COMPLAINT (only owner)
+    @Override
+    public void deleteComplaint(long id) {
+        Complaint complaint = getComplaintById(id);
+        complaintRepository.delete(complaint);
+    }
 
-	// ASSIGN HANDLER TO COMPLAINT
-	@Override
-	public Complaint assignHandler(long id, long handledBy_id) {
-		Complaint existingComplaint = complaintRepository.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException("Complaint", "id", id));
-		
+    // ASSIGN HANDLER
+    @Override
+    public Complaint assignHandler(long id, long handlerId) {
 
-		User handler = userService.getUserById(handledBy_id);
-		if (!handler.isActive()) {
-		    throw new InvalidDataException("Handler is inactive");
-		}
-		if (handler.getRole() == UserRole.CITIZEN) {
-			throw new InvalidDataException("Citizen cannot handle complaints");
-		}
-		existingComplaint.setHandledBy(handler);
-		existingComplaint.setStatus(ComplaintStatus.IN_PROGRESS);
+        Complaint complaint = getComplaintById(id);
 
-		return complaintRepository.save(existingComplaint);
+        User handler = userService.getUserById(handlerId);
 
-	}
+        if (!handler.isActive()) {
+            throw new InvalidDataException("Handler is inactive");
+        }
 
-	// UPDATE COMPLAINT STATUS
-	@Override
-	public Complaint updateStatus(long id, ComplaintStatus status) {
-		Complaint complaint = complaintRepository.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException("Complaint", "id", id));
-		ComplaintStatus oldStatus = complaint.getStatus();
-		if ((oldStatus == ComplaintStatus.PENDING || oldStatus == ComplaintStatus.IN_PROGRESS)
-				&& (status == ComplaintStatus.RESOLVED || status == ComplaintStatus.REJECTED)) {
-			complaint.setStatus(status);
-		} else {
-			throw new InvalidDataException("Invalid status transition from " + oldStatus + " to " + status);
-		}
-		return complaintRepository.save(complaint);
-	}
+        if (handler.getRole() == UserRole.CITIZEN) {
+            throw new InvalidDataException("Citizen cannot handle complaints");
+        }
 
-	// GET COMPLAINT BY ID
-	@Override
-	public Complaint getComplaintById(long id) {
-		return complaintRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Complaint", "id", id));
-	}
+        complaint.setHandledBy(handler);
+        complaint.setStatus(ComplaintStatus.IN_PROGRESS);
 
-	// GET COMPLAINT BY CITIZEN ID
-	@Override
-	public List<Complaint> getComplaintByCitizenId(long citizenId) {
-		return complaintRepository.findByCitizen_Id(citizenId);
-	}
+        return complaintRepository.save(complaint);
+    }
 
-	// GET COMPLAINT BY HANDLER ID
-	@Override
-	public List<Complaint> getComplaintByHandlerId(long handlerId) {
-		return complaintRepository.findByHandledBy_Id(handlerId);
-	}
+    // UPDATE STATUS
+    @Override
+    public Complaint updateStatus(long id, ComplaintStatus status) {
 
-	// GET COMPLAINT BY STATUS
-	@Override
-	public List<Complaint> getComplaintByStatus(ComplaintStatus status) {
-		return complaintRepository.findByStatus(status);
-	}
+        Complaint complaint = getComplaintById(id);
 
-	// GET ALL COMPLAINTS
-	@Override
-	public List<Complaint> getAllComplaints() {
-		return complaintRepository.findAll();
+        ComplaintStatus oldStatus = complaint.getStatus();
 
-	}
+        if ((oldStatus == ComplaintStatus.PENDING || oldStatus == ComplaintStatus.IN_PROGRESS)
+                && (status == ComplaintStatus.RESOLVED || status == ComplaintStatus.REJECTED)) {
 
-	// SEARCH COMPLAINTS BY KEYWORD
-	@Override
-	public List<Complaint> searchComplaints(String keyword) {
-		return complaintRepository.findByTitleContainingIgnoreCase(keyword);
-	}
+            complaint.setStatus(status);
 
-	// GET RECENT COMPLAINTS
-	@Override
-	public List<Complaint> getRecentComplaints(LocalDate since) {
+        } else {
+            throw new InvalidDataException(
+                    "Invalid status transition from " + oldStatus + " to " + status);
+        }
 
-		return complaintRepository.findByCreatedAtAfter(since);
-	}
-// GET COMPLAINT IF OWNER
-	public Complaint getComplaintIfOwner(long id) {
-		Complaint complaint = complaintRepository.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException("Complaint", "id", id));
+        return complaintRepository.save(complaint);
+    }
 
-		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-		String email = auth.getName();
+    // GET BY ID
+    @Override
+    public Complaint getComplaintById(long id) {
+        return complaintRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Complaint", "id", id));
+    }
 
-		User citizen = userService.getUserByEmail(email);
-		if (complaint.getCitizen().getId() != citizen.getId()) {
-			throw new InvalidDataException("Access denied: You are not the owner of this complaint");
-		}
-		return complaint;
-	}
+    // PAGINATED METHODS
 
+    @Override
+    public Page<Complaint> getAllComplaints(Pageable pageable) {
+        return complaintRepository.findAll(pageable);
+    }
+
+    @Override
+    public Page<Complaint> getComplaintByCitizenId(long citizenId, Pageable pageable) {
+        return complaintRepository.findByCitizen_Id(citizenId, pageable);
+    }
+
+    @Override
+    public Page<Complaint> getComplaintByHandlerId(long handlerId, Pageable pageable) {
+        return complaintRepository.findByHandledBy_Id(handlerId, pageable);
+    }
+
+    @Override
+    public Page<Complaint> getComplaintByStatus(ComplaintStatus status, Pageable pageable) {
+        return complaintRepository.findByStatus(status, pageable);
+    }
+
+    @Override
+    public Page<Complaint> searchComplaints(String keyword, Pageable pageable) {
+        return complaintRepository.findByTitleContainingIgnoreCase(keyword, pageable);
+    }
+
+    @Override
+    public Page<Complaint> getRecentComplaints(LocalDate since, Pageable pageable) {
+        return complaintRepository.findByCreatedAtAfter(since, pageable);
+    }
 }

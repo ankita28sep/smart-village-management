@@ -2,12 +2,9 @@ package com.smartvillage.service.impl;
 
 import java.time.LocalDateTime;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -19,77 +16,70 @@ import com.smartvillage.exceptions.InvalidDataException;
 import com.smartvillage.repository.UserRepository;
 import com.smartvillage.security.JwtUtil;
 import com.smartvillage.service.AuthService;
+import com.smartvillage.service.UserService;
+
 @Service
 public class AuthServiceImpl implements AuthService {
 
-	    private final UserRepository userRepository;
-	    private final PasswordEncoder passwordEncoder;
-	    private final AuthenticationManager authManager;
-	    private final JwtUtil jwtUtil;
-	    private final UserServiceImpl userService;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authManager;
+    private final JwtUtil jwtUtil;
+    private final UserService userService;
 
-	    @Autowired
-	    public AuthServiceImpl(UserRepository userRepository,
-	                           PasswordEncoder passwordEncoder,
-	                           AuthenticationManager authManager,
-	                           JwtUtil jwtUtil,
-	                           UserServiceImpl userService) {
-	        this.userRepository = userRepository;
-	        this.passwordEncoder = passwordEncoder;
-	        this.authManager = authManager;
-	        this.jwtUtil = jwtUtil;
-	        this.userService = userService;
-	    }
+    public AuthServiceImpl(UserRepository userRepository,
+                           PasswordEncoder passwordEncoder,
+                           AuthenticationManager authManager,
+                           JwtUtil jwtUtil,
+                           UserService userService) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.authManager = authManager;
+        this.jwtUtil = jwtUtil;
+        this.userService = userService;
+    }
 
-	@Override
-	public String login(LoginRequestDto dto) {
-		try {
-		authManager.authenticate(new UsernamePasswordAuthenticationToken(dto.getEmail(), dto.getPassword()));
-				} catch (BadCredentialsException e) {
-		    throw new InvalidDataException("Invalid email or password");
-		}
-		User user = userService.getUserByEmail(dto.getEmail());
+    // LOGIN
+    @Override
+    public String login(LoginRequestDto dto) {
 
-		// CHECK STATUS
-				if (user.isActive() == false) {
-					throw new InvalidDataException("User is Blocked by admin");
-				}
+        try {
+            authManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            dto.getEmail(),
+                            dto.getPassword()
+                    )
+            );
+        } catch (BadCredentialsException e) {
+            throw new InvalidDataException("Invalid email or password");
+        }
 
-				return jwtUtil.generateToken(user.getEmail());
-	}
+        User user = userService.getUserByEmail(dto.getEmail());
 
-	@Override
-	public User register(User user) {
+        if (!user.isActive()) {
+            throw new InvalidDataException("User is blocked by admin");
+        }
 
-	    if (userRepository.existsByEmail(user.getEmail())) {
-	        throw new DuplicateResourceException("Email already exists");
-	    }
+        return jwtUtil.generateToken(user.getEmail());
+    }
 
-	    // encode password
-	    user.setPassword(passwordEncoder.encode(user.getPassword()));
+    // REGISTER
+    @Override
+    public User register(User user) {
 
-	    user.setCreatedAt(LocalDateTime.now());
-	    user.setUpdatedAt(LocalDateTime.now());
-	    user.setActive(true);
+        if (userRepository.existsByEmail(user.getEmail())) {
+            throw new DuplicateResourceException("Email already exists");
+        }
 
-	    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
 
-		
-		  // Public registration
-	    if (auth == null || !auth.isAuthenticated() ||
-		  auth.getPrincipal().equals("anonymousUser")) {
-		  
-		  user.setRole(UserRole.CITIZEN);
-		  
-		  } else {
-		  
-		  boolean isAdmin = auth.getAuthorities() .stream() .anyMatch(a ->
-		  a.getAuthority().equals("ROLE_ADMIN"));
-		  
-		  if (isAdmin && user.getRole() != null) { user.setRole(user.getRole()); } else
-		  { user.setRole(UserRole.CITIZEN); } }
-		 
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
+        user.setActive(true);
 
-	    return userRepository.save(user);
-	}
+        // Default role
+        user.setRole(UserRole.CITIZEN);
+
+        return userRepository.save(user);
+    }
 }

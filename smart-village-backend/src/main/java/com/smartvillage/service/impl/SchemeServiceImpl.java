@@ -1,10 +1,10 @@
 package com.smartvillage.service.impl;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.smartvillage.entity.Scheme;
@@ -20,156 +20,182 @@ import jakarta.transaction.Transactional;
 @Service
 @Transactional
 public class SchemeServiceImpl implements SchemeService {
-	@Autowired
-	private SchemeRepository schemeRepository;
-	@Autowired
-	private UserRepository userRepository;
 
-	// CREATE SCHEME
-	@Override
-	public Scheme createScheme(Scheme scheme) {
-		if (schemeRepository.existsByNameIgnoreCase(scheme.getName())) {
-			throw new DuplicateResourceException("Scheme with name " + scheme.getName() + " already exists");
-		}
-		if (!userRepository.existsById(scheme.getPostedBy().getId())) {
-			throw new ResourceNotFoundException("postedby", "id", scheme.getPostedBy().getId());
-		}
+    private final SchemeRepository schemeRepository;
+    private final UserRepository userRepository;
 
-		if (scheme.getStartDate().isAfter(scheme.getEndDate())) {
-			throw new IllegalArgumentException("Start date must be before End date");
-		}
+    public SchemeServiceImpl(SchemeRepository schemeRepository, UserRepository userRepository) {
+        this.schemeRepository = schemeRepository;
+        this.userRepository = userRepository;
+    }
 
-		if (scheme.getEndDate().isBefore(LocalDate.now())) {
-			throw new IllegalArgumentException("End date must be in the future");
-		}
-		return schemeRepository.save(scheme);
-	}
+    // CREATE SCHEME
+    @Override
+    public Scheme createScheme(Scheme scheme) {
 
-	// UPDATE SCHEME
-	@Override
-	public Scheme updateScheme(long id, Scheme scheme) {
-		Scheme existingScheme = schemeRepository.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException("Scheme", "id", id));
+        if (schemeRepository.existsByNameIgnoreCase(scheme.getName())) {
+            throw new DuplicateResourceException(
+                    "Scheme with name " + scheme.getName() + " already exists");
+        }
 
-		if (!userRepository.existsById(scheme.getPostedBy().getId())) {
-			throw new ResourceNotFoundException("postedby", "id", scheme.getPostedBy().getId());
-		}
-		if (scheme.getStartDate().isAfter(scheme.getEndDate())) {
-			throw new IllegalArgumentException("Start date must be before End date");
-		}
+        validatePostedBy(scheme);
+        validateDates(scheme);
 
-		if (scheme.getEndDate().isBefore(LocalDate.now())) {
-			throw new IllegalArgumentException("End date must be in the future");
-		}
-		// Check duplicate only if name is changed
-		if (!existingScheme.getName().equals(scheme.getName())) {
+        return schemeRepository.save(scheme);
+    }
 
-			Optional<Scheme> existingByName = schemeRepository.findByName(scheme.getName());
+    // UPDATE SCHEME
+    @Override
+    public Scheme updateScheme(long id, Scheme scheme) {
 
-			if (existingByName.isPresent()) {
-				throw new DuplicateResourceException("Scheme with name " + scheme.getName() + " already exists");
-			}
-		}
-		existingScheme.setPostedBy(scheme.getPostedBy());
-		return schemeRepository.save(existingScheme);
-	}
+        Scheme existingScheme = getSchemeOrThrow(id);
 
-	// DELETE SCHEME
-	@Override
-	public void deleteScheme(long id) {
-		Scheme existingScheme = schemeRepository.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException("Scheme", "id", id));
-		schemeRepository.delete(existingScheme);
-	}
+        validatePostedBy(scheme);
+        validateDates(scheme);
 
-	// GET SCHEME BY ID
-	@Override
-	public Scheme getSchemeById(long id) {
-		Scheme scheme = schemeRepository.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException("Scheme", "id", id));
-		autoExpire(scheme);
-		return scheme;
-	}
+        if (!existingScheme.getName().equalsIgnoreCase(scheme.getName())) {
 
-	// GET ALL SCHEMES
-	@Override
-	public List<Scheme> getAllSchemes() {
-		List<Scheme> all = schemeRepository.findAll();
-		all.forEach(this::autoExpire);
-		return all;
-	}
+            Optional<Scheme> existingByName = schemeRepository.findByName(scheme.getName());
 
-	// GET ACTIVE SCHEMES
-	@Override
-	public List<Scheme> getActiveSchemes() {
-		List<Scheme> byActiveTrue = schemeRepository.findByActiveTrue();
-		byActiveTrue.forEach(this::autoExpire);
-		return byActiveTrue;
-	}
+            if (existingByName.isPresent()) {
+                throw new DuplicateResourceException(
+                        "Scheme with name " + scheme.getName() + " already exists");
+            }
+        }
 
-	// GET SCHEMES BY POSTEDBY ID
-	@Override
-	public List<Scheme> getSchemesByPostedById(long id) {
-		List<Scheme> schemes = schemeRepository.findByPostedBy_Id(id);
-		schemes.forEach(this::autoExpire);
-		return schemes;
-	}
+        existingScheme.setPostedBy(scheme.getPostedBy());
 
-	// SEARCH SCHEMES BY NAME
-	@Override
-	public List<Scheme> searchSchemes(String name) {
-		List<Scheme> schemes = schemeRepository.findByNameContainingIgnoreCase(name);
-		schemes.forEach(this::autoExpire);
-		return schemes;
-	}
+        return schemeRepository.save(existingScheme);
+    }
 
-	// DEACTIVATE SCHEME
-	@Override
-	public Scheme deactivateScheme(long id) {
-		Scheme scheme = schemeRepository.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException("Scheme", "id", id));
-		if (!scheme.isActive()) {
-			throw new InvalidDataException("scheme is already deactivated");
-		}
-		scheme.setActive(false);
-		return schemeRepository.save(scheme);
-	}
+    // DELETE SCHEME
+    @Override
+    public void deleteScheme(long id) {
+        Scheme scheme = getSchemeOrThrow(id);
+        schemeRepository.delete(scheme);
+    }
 
-	// AUTO EXPIRE SCHEME
-	private void autoExpire(Scheme scheme) {
-		if (scheme.isActive() && scheme.getEndDate() != null && scheme.getEndDate().isBefore(LocalDate.now())) {
+    // GET SCHEME BY ID
+    @Override
+    public Scheme getSchemeById(long id) {
+        Scheme scheme = getSchemeOrThrow(id);
+        autoExpire(scheme);
+        return scheme;
+    }
 
-			scheme.setActive(false);
-			schemeRepository.save(scheme);
-		}
-	}
+    // GET ALL SCHEMES (PAGINATED)
+    @Override
+    public Page<Scheme> getAllSchemes(Pageable pageable) {
+        Page<Scheme> schemes = schemeRepository.findAll(pageable);
+        schemes.forEach(this::autoExpire);
+        return schemes;
+    }
 
-	// FIND SCHEME BY ELIGIBILITY
-	@Override
-	public List<Scheme> findByEligibility(Integer financialYear, String religion, String casteCategory,
-			Double annualIncome, Boolean disability, String department) {
+    // GET ACTIVE SCHEMES (PAGINATED)
+    @Override
+    public Page<Scheme> getActiveSchemes(Pageable pageable) {
+        Page<Scheme> schemes = schemeRepository.findByActiveTrue(pageable);
+        schemes.forEach(this::autoExpire);
+        return schemes;
+    }
 
-		List<Scheme> schemes = schemeRepository.findAll();
+    // GET SCHEMES BY POSTEDBY ID (PAGINATED)
+    @Override
+    public Page<Scheme> getSchemesByPostedById(long id, Pageable pageable) {
+        Page<Scheme> schemes = schemeRepository.findByPostedBy_Id(id, pageable);
+        schemes.forEach(this::autoExpire);
+        return schemes;
+    }
 
-		schemes = schemes.stream().filter(s -> s.getEligibility() != null)
-				.filter(s -> financialYear == null || s.getEligibility().getFinancialYear() == (financialYear))
+    // SEARCH SCHEMES (PAGINATED)
+    @Override
+    public Page<Scheme> searchSchemes(String name, Pageable pageable) {
+        Page<Scheme> schemes = schemeRepository.findByNameContainingIgnoreCase(name, pageable);
+        schemes.forEach(this::autoExpire);
+        return schemes;
+    }
 
-				.filter(s -> religion == null || religion.isBlank()
-						|| s.getEligibility().getReligion().equalsIgnoreCase(religion.trim()))
+    // DEACTIVATE SCHEME
+    @Override
+    public Scheme deactivateScheme(long id) {
+        Scheme scheme = getSchemeOrThrow(id);
 
-				.filter(s -> casteCategory == null || casteCategory.isBlank()
-						|| s.getEligibility().getCasteCategory().equalsIgnoreCase(casteCategory.trim()))
+        if (!scheme.isActive()) {
+            throw new InvalidDataException("Scheme is already deactivated");
+        }
 
-				.filter(s -> annualIncome == null || s.getEligibility().getAnnualIncome() >= annualIncome)
+        scheme.setActive(false);
+        return schemeRepository.save(scheme);
+    }
 
-				.filter(s -> disability == null || s.getEligibility().isDisability() == (disability))
+    // FIND BY ELIGIBILITY (PAGINATED)
+    @Override
+    public Page<Scheme> findByEligibility(Integer financialYear,
+                                          String religion,
+                                          String casteCategory,
+                                          Double annualIncome,
+                                          Boolean disability,
+                                          String department,
+                                          Pageable pageable) {
 
-				.filter(s -> department == null || department.isBlank()
-						|| s.getEligibility().getDepartment().equalsIgnoreCase(department.trim()))
-				.toList();
+        Page<Scheme> schemes = schemeRepository.findAll(pageable);
 
-		schemes.forEach(this::autoExpire);
-		return schemes;
-	}
+        return schemes.map(s -> {
+            if (s.getEligibility() == null) return null;
 
+            boolean match =
+                    (financialYear == null || s.getEligibility().getFinancialYear() == financialYear) &&
+                    (religion == null || religion.isBlank() ||
+                            s.getEligibility().getReligion().equalsIgnoreCase(religion.trim())) &&
+                    (casteCategory == null || casteCategory.isBlank() ||
+                            s.getEligibility().getCasteCategory().equalsIgnoreCase(casteCategory.trim())) &&
+                    (annualIncome == null ||
+                            s.getEligibility().getAnnualIncome() >= annualIncome) &&
+                    (disability == null ||
+                            s.getEligibility().isDisability() == disability) &&
+                    (department == null || department.isBlank() ||
+                            s.getEligibility().getDepartment().equalsIgnoreCase(department.trim()));
+
+            if (match) {
+                autoExpire(s);
+                return s;
+            }
+
+            return null;
+        });
+    }
+
+    // ================= HELPER METHODS =================
+
+    private Scheme getSchemeOrThrow(long id) {
+        return schemeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Scheme", "id", id));
+    }
+
+    private void validatePostedBy(Scheme scheme) {
+        if (!userRepository.existsById(scheme.getPostedBy().getId())) {
+            throw new ResourceNotFoundException(
+                    "postedBy", "id", scheme.getPostedBy().getId());
+        }
+    }
+
+    private void validateDates(Scheme scheme) {
+        if (scheme.getStartDate().isAfter(scheme.getEndDate())) {
+            throw new IllegalArgumentException("Start date must be before End date");
+        }
+
+        if (scheme.getEndDate().isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("End date must be in the future");
+        }
+    }
+
+    private void autoExpire(Scheme scheme) {
+        if (scheme.isActive()
+                && scheme.getEndDate() != null
+                && scheme.getEndDate().isBefore(LocalDate.now())) {
+
+            scheme.setActive(false);
+            schemeRepository.save(scheme);
+        }
+    }
 }

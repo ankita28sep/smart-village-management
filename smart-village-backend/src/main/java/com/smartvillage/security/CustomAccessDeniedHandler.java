@@ -8,8 +8,9 @@ import org.springframework.stereotype.Component;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 @Component
-public class CustomAccessDeniedHandler  implements AccessDeniedHandler{
+public class CustomAccessDeniedHandler implements AccessDeniedHandler {
 
     @Override
     public void handle(HttpServletRequest request,
@@ -20,12 +21,16 @@ public class CustomAccessDeniedHandler  implements AccessDeniedHandler{
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType("application/json");
 
-        response.getWriter().write("""
+        String responseBody = String.format("""
         {
             "status": 403,
             "error": "Forbidden",
-            "message": "Access denied",
+            "message": "%s",
             "path": "%s"
         }
-        """.formatted(request.getRequestURI()));
-    }}
+        """, ex.getMessage(), request.getRequestURI());
+
+        response.getWriter().write(responseBody);
+        response.getWriter().flush();
+    }
+}

@@ -7,34 +7,41 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public class LoginRequestDto {
-	@Email(message = "Invalid email format")
-	@NotBlank(message = "Email is required")
-	private String email;
-	@NotBlank(message = "Password is required")
-	private String password;
-	@NotNull(message = "User role is required")
-	private UserRole role;
 
-	public String getEmail() {
-		return email;
-	}
+    @NotBlank(message = "Email is required")
+    @Email(message = "Invalid email format")
+    private String email;
 
-	public void setEmail(String email) {
-		this.email = email;
-	}
+    @NotBlank(message = "Password is required")
+    private String password;
 
-	public String getPassword() {
-		return password;
-	}
+    @NotNull(message = "User role is required")
+    private UserRole role;
 
-	public void setPassword(String password) {
-		this.password = password;
-	}
-	public UserRole getRole() {
-		return role;
-	}
-	public void setRole(UserRole role) {
-		this.role = role;
-	}
+    // Getters and Setters
 
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    // Optional: avoid exposing password accidentally in logs/debug
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public UserRole getRole() {
+        return role;
+    }
+
+    public void setRole(UserRole role) {
+        this.role = role;
+    }
 }

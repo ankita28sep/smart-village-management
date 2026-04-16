@@ -1,11 +1,9 @@
 package com.smartvillage.service.impl;
 
 import java.time.LocalDate;
-import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.smartvillage.entity.Eligibility;
@@ -22,223 +20,227 @@ import jakarta.transaction.Transactional;
 @Service
 @Transactional
 public class SchemeApplicationServiceImpl implements SchemeApplicationService {
-	@Autowired
-	private SchemeApplicationRepository schemeApplicationRepository;
 
-	// APPLY TO SCHEME
-	@Override
-	public SchemeApplication applyToScheme(SchemeApplication application) {
-		// CHECK DUPLICATE APPLICATION
-		if (schemeApplicationRepository.existsByApplicant_IdAndScheme_Id(application.getApplicant().getId(),
-				application.getScheme().getId())) {
-			throw new DuplicateResourceException("application with applicant id " + application.getApplicant().getId()
-					+ " and scheme id " + application.getScheme().getId() + " already exists");
-		}
-		// CHECK DUPLICATE AADHAR NO FOR SAME SCHEME
-		if (application.getAadharNo() != null && schemeApplicationRepository
-				.existsByAadharNoAndScheme_Id(application.getAadharNo(), application.getScheme().getId())) {
-			throw new DuplicateResourceException(
-					"An application with the same Aadhar number already exists for this scheme");
-		}
-		// CHECK USER STATUS
-		if (application.getApplicant().isActive() == false) {
-			throw new InvalidDataException("Blocked users can not apply");
-		}
-		// CHECK EXPIREY OF SCHEME
-		if (application.getScheme().getEndDate() != null
-				&& application.getScheme().getEndDate().isBefore(LocalDate.now())) {
-			throw new InvalidDataException("Scheme has expired");
-		}
-		Eligibility e = application.getScheme().getEligibility();
-		this.checkEligibility(application, e);
+    private final SchemeApplicationRepository repository;
 
-		// CHECK SCHEME STATUS
-		if (!application.getScheme().isActive()) {
-			throw new InvalidDataException("Scheme is inactive or expired");
-		}
-		// CHECK ANNUAL APPLICATION LIMIT
-		int currentYear = LocalDate.now().getYear();
-		if (schemeApplicationRepository.existsByApplicant_IdAndScheme_IdAndYear(application.getApplicant().getId(),
-				application.getScheme().getId(), currentYear)) {
-			throw new DuplicateResourceException("You have already applied for this scheme in the current year");
-		}
+    public SchemeApplicationServiceImpl(SchemeApplicationRepository repository) {
+        this.repository = repository;
+    }
 
-		return schemeApplicationRepository.save(application);
-	}
+    // APPLY TO SCHEME
+    @Override
+    public SchemeApplication applyToScheme(SchemeApplication application) {
 
-	// UPDATE APPLICATION
-	@Override
-	public SchemeApplication updateApplication(long applicationId, SchemeApplication application) {
-		SchemeApplication existingApplication = this.getApplicationIfOwner(applicationId);
-		// Only allow update if pending
-		if (existingApplication.getStatus() != ApplicationStatus.PENDING) {
-			throw new InvalidDataException("Only PENDING applications can be updated");
-		}
-		return schemeApplicationRepository.save(existingApplication);
-	}
+        validateDuplicateApplication(application);
+        validateApplicant(application);
+        validateScheme(application);
+        validateEligibility(application);
 
-	// UPDATE APPLICATION STATUS
-	@Override
-	public SchemeApplication updateApplicationStatus(long id, ApplicationStatus status) {
-		SchemeApplication application = schemeApplicationRepository.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException("application", "id", id));
-		ApplicationStatus currentStatus = application.getStatus();
-		if (currentStatus == ApplicationStatus.PENDING
-				&& (status == ApplicationStatus.APPROVED || status == ApplicationStatus.REJECTED)) {
-			application.setStatus(status);
-		} else {
-			throw new InvalidDataException("invalid status transition from " + currentStatus + " to " + status);
-		}
-		return schemeApplicationRepository.save(application);
-	}
+        // Annual duplicate check
+        int currentYear = LocalDate.now().getYear();
+        if (repository.existsByApplicant_IdAndScheme_IdAndYear(
+                application.getApplicant().getId(),
+                application.getScheme().getId(),
+                currentYear)) {
 
-	// DELETE APPLICATION
-	@Override
-	public void deleteApplication(long id) {
+            throw new DuplicateResourceException(
+                    "You have already applied for this scheme this year");
+        }
 
-		SchemeApplication application = this.getApplicationIfOwner(id);
-		// Only allow update if pending
-		if (application.getStatus() != ApplicationStatus.PENDING) {
-			throw new InvalidDataException("Only PENDING applications can be deleted");
-		}
-		
-		schemeApplicationRepository.delete(application);
-	}
+        return repository.save(application);
+    }
 
-	// GET APPLICATION BY ID
-	@Override
-	public SchemeApplication getApplicationById(long id) {
-		return schemeApplicationRepository.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException("application", "id", id));
-	}
+    // UPDATE APPLICATION
+    @Override
+    public SchemeApplication updateApplication(long id, SchemeApplication updated) {
 
-	// GET ALL APPLICATIONS
-	@Override
-	public List<SchemeApplication> getAllApplications() {
-		return schemeApplicationRepository.findAll();
-	}
+        SchemeApplication existing = getApplicationOrThrow(id);
 
-	// GET APPLICATIONS BY STATUS
-	@Override
-	public List<SchemeApplication> getApplicationsByStatus(ApplicationStatus status) {
-		return schemeApplicationRepository.findByStatus(status);
-	}
+        if (existing.getStatus() != ApplicationStatus.PENDING) {
+            throw new InvalidDataException("Only PENDING applications can be updated");
+        }
 
-	// GET APPLICATIONS BY APPLICANT ID
-	@Override
-	public List<SchemeApplication> getApplicationsByApplicantId(long applicant_id) {
-		return schemeApplicationRepository.findByApplicant_Id(applicant_id);
-	}
+        // IMPORTANT: updated object already modified by mapper
+        return repository.save(existing);
+    }
 
-	// GET APPLICATIONS BY SCHEME ID
-	@Override
-	public List<SchemeApplication> getApplicationsBySchemeId(long scheme_id) {
-		return schemeApplicationRepository.findByScheme_Id(scheme_id);
-	}
+    // UPDATE STATUS
+    @Override
+    public SchemeApplication updateApplicationStatus(long id, ApplicationStatus status) {
 
-	// GET APPLICATIONS BY CITITZEN ID AND SCHEME ID
+        SchemeApplication app = getApplicationOrThrow(id);
+
+        if (app.getStatus() != ApplicationStatus.PENDING) {
+            throw new InvalidDataException("Only PENDING applications can be updated");
+        }
+
+        if (status != ApplicationStatus.APPROVED && status != ApplicationStatus.REJECTED) {
+            throw new InvalidDataException("Invalid status transition");
+        }
+
+        app.setStatus(status);
+        return repository.save(app);
+    }
+
+    // DELETE APPLICATION
+    @Override
+    public void deleteApplication(long id) {
+
+        SchemeApplication app = getApplicationOrThrow(id);
+
+        if (app.getStatus() != ApplicationStatus.PENDING) {
+            throw new InvalidDataException("Only PENDING applications can be deleted");
+        }
+
+        repository.delete(app);
+    }
+
+    // GET BY ID
+    @Override
+    public SchemeApplication getApplicationById(long id) {
+        return getApplicationOrThrow(id);
+    }
+
+    // GET ALL (PAGINATED)
+    @Override
+    public Page<SchemeApplication> getAllApplications(Pageable pageable) {
+        return repository.findAll(pageable);
+    }
+
+    // BY STATUS (PAGINATED)
+    @Override
+    public Page<SchemeApplication> getApplicationsByStatus(ApplicationStatus status, Pageable pageable) {
+        return repository.findByStatus(status, pageable);
+    }
+
+    // BY APPLICANT (PAGINATED)
+    @Override
+    public Page<SchemeApplication> getApplicationsByApplicantId(long applicantId, Pageable pageable) {
+        return repository.findByApplicant_Id(applicantId, pageable);
+    }
+
+    // BY SCHEME (PAGINATED)
+    @Override
+    public Page<SchemeApplication> getApplicationsBySchemeId(long schemeId, Pageable pageable) {
+        return repository.findByScheme_Id(schemeId, pageable);
+    }
+
+    // CANCEL APPLICATION
+    @Override
+    public SchemeApplication cancelApplication(long id) {
+
+        SchemeApplication app = getApplicationOrThrow(id);
+
+        if (app.getStatus() != ApplicationStatus.PENDING) {
+            throw new InvalidDataException("Only pending applications can be cancelled");
+        }
+
+        app.setStatus(ApplicationStatus.CANCELLED);
+        return repository.save(app);
+    }
+
+    // ================= HELPER METHODS =================
+
+    private SchemeApplication getApplicationOrThrow(long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("application", "id", id));
+    }
+
+    private void validateDuplicateApplication(SchemeApplication app) {
+
+        if (repository.existsByApplicant_IdAndScheme_Id(
+                app.getApplicant().getId(),
+                app.getScheme().getId())) {
+
+            throw new DuplicateResourceException("Application already exists for this scheme");
+        }
+
+        if (app.getAadharNo() != null &&
+                repository.existsByAadharNoAndScheme_Id(
+                        app.getAadharNo(),
+                        app.getScheme().getId())) {
+
+            throw new DuplicateResourceException(
+                    "Application with same Aadhar already exists for this scheme");
+        }
+    }
+
+    private void validateApplicant(SchemeApplication app) {
+        if (!app.getApplicant().isActive()) {
+            throw new InvalidDataException("Blocked users cannot apply");
+        }
+    }
+
+    private void validateScheme(SchemeApplication app) {
+
+        if (!app.getScheme().isActive()) {
+            throw new InvalidDataException("Scheme is inactive");
+        }
+
+        if (app.getScheme().getEndDate() != null &&
+                app.getScheme().getEndDate().isBefore(LocalDate.now())) {
+
+            throw new InvalidDataException("Scheme has expired");
+        }
+    }
+
+    private void validateEligibility(SchemeApplication app) {
+
+        Eligibility e = app.getScheme().getEligibility();
+
+        if (e == null) return;
+
+        if (app.getFinancialYear() != e.getFinancialYear()) {
+            throw new InvalidDataException("Financial year mismatch");
+        }
+
+        if (e.getReligion() != null &&
+                !e.getReligion().equalsIgnoreCase(app.getReligion())) {
+            throw new InvalidDataException("Religion mismatch");
+        }
+
+        if (e.getCasteCategory() != null &&
+                !e.getCasteCategory().equalsIgnoreCase(app.getCaste())) {
+            throw new InvalidDataException("Caste mismatch");
+        }
+
+        if (e.getAnnualIncome() > 0 &&
+                app.getAnnualIncome() > e.getAnnualIncome()) {
+            throw new InvalidDataException("Income exceeds limit");
+        }
+
+        if (e.getDepartment() != null &&
+                !e.getDepartment().equalsIgnoreCase(app.getDepartment())) {
+            throw new InvalidDataException("Department mismatch");
+        }
+
+        if (e.isDisability() && !app.isDisability()) {
+            throw new InvalidDataException("Only for disabled applicants");
+        }
+    }
+
 	@Override
 	public SchemeApplication findByApplicant_IdAndScheme_Id(long applicantId, long schemeId) {
-		return schemeApplicationRepository.findByApplicant_IdAndScheme_Id(applicantId, schemeId)
-				.orElseThrow(() -> new ResourceNotFoundException("SchemeApplication", "applicantId/schemeId",
-						applicantId + "/" + schemeId));
+		// TODO Auto-generated method stub
+		return null;
 	}
 
-// GET APPLICATIONS BY APPLICANT NAME
 	@Override
-	public List<SchemeApplication> searchApplicationsByApplicantName(String keyword) {
-
-		return schemeApplicationRepository.findByApplicant_NameContainingIgnoreCase(keyword);
+	public Page<SchemeApplication> getApplicationsByYear(int year, Pageable pageable) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
-// GET APPLICATIONS BY SCHEME NAME
 	@Override
-	public List<SchemeApplication> searchApplicationsBySchemeName(String keyword) {
-		return schemeApplicationRepository.findByScheme_NameContainingIgnoreCase(keyword);
+	public Page<SchemeApplication> searchApplicationsByApplicantName(String keyword, Pageable pageable) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
-// CANCEL APPLICATION
 	@Override
-	public SchemeApplication cancelApplication(long id) {
-		SchemeApplication application = schemeApplicationRepository.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException("application", "id", id));
-		if (!application.getStatus().equals(ApplicationStatus.PENDING)) {
-			throw new InvalidDataException(("Only pending applications can be cancelled"));
-		}
-		application.setStatus(ApplicationStatus.CANCELLED);
-
-		return schemeApplicationRepository.save(application);
+	public Page<SchemeApplication> searchApplicationsBySchemeName(String keyword, Pageable pageable) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
-// GET APPLICATIONS BY YEAR
-	@Override
-	public List<SchemeApplication> getApplicationsByYear(int year) {
-		return schemeApplicationRepository.findByYear(year);
-	}
-
-//ELIGIBILITY CHECK
-	@Override
-	public void checkEligibility(SchemeApplication application, Eligibility e) {
-		// ELIGIBILITY CHECK
-
-		if (e != null) {
-
-			// Financial Year
-			if (application.getFinancialYear() != e.getFinancialYear()) {
-				throw new InvalidDataException("Not eligible: Financial year mismatch");
-			}
-
-			// Religion
-			if (e.getReligion() != null && application.getReligion() != null
-					&& !application.getReligion().equalsIgnoreCase(e.getReligion())) {
-
-				throw new InvalidDataException("Not eligible: Religion mismatch");
-			}
-
-			// Caste
-			if (e.getCasteCategory() != null && application.getCaste() != null
-					&& !application.getCaste().equalsIgnoreCase(e.getCasteCategory())) {
-
-				throw new InvalidDataException("Not eligible: Caste category mismatch");
-			}
-
-			// Income (IMPORTANT FIX)
-			if (e.getAnnualIncome() > 0 && application.getAnnualIncome() > e.getAnnualIncome()) {
-
-				throw new InvalidDataException("Not eligible: Income exceeds scheme limit");
-			}
-
-			// Department
-			if (e.getDepartment() != null && application.getDepartment() != null
-					&& !application.getDepartment().equalsIgnoreCase(e.getDepartment())) {
-
-				throw new InvalidDataException("Not eligible: Department mismatch");
-			}
-
-			// Disability (IMPORTANT FIX)
-			if (e.isDisability() && !application.isDisability()) {
-
-				throw new InvalidDataException("Not eligible: Scheme only for disabled applicants");
-			}
-		}
-
-	}
-
-	private SchemeApplication getApplicationIfOwner(Long id) {
-
-		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-		String email = auth.getName();
-
-		SchemeApplication app = schemeApplicationRepository.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException("application", "id", id));
-		
-		boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-
-		if (!isAdmin && !app.getApplicant().getEmail().equals(email)) {
-			throw new InvalidDataException("Access denied");
-		}
-
-		return app;
-	}
 }

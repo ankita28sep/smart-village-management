@@ -1,23 +1,15 @@
 package com.smartvillage.controller;
 
+import java.security.Principal;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.smartvillage.dto.complaint.ComplaintRequestDto;
 import com.smartvillage.dto.complaint.ComplaintResponseDto;
@@ -35,108 +27,162 @@ import jakarta.validation.Valid;
 @Validated
 @RequestMapping("/complaints")
 public class ComplaintController {
-	@Autowired
-	private ComplaintService complaintService;
-	@Autowired
-	private UserService userService;
 
-	@PreAuthorize("hasRole('CITIZEN')")
-	@PostMapping("/raise")
-	public ComplaintResponseDto raiseComplaint(@Valid @RequestBody ComplaintRequestDto dto) {
-		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-		String email = auth.getName();
+    private final ComplaintService complaintService;
+    private final UserService userService;
 
-		User citizen = userService.getUserByEmail(email);
-		Complaint complaint = ComplaintMapper.toEntity(dto, citizen);
-		return ComplaintMapper.toDto(complaintService.raiseComplaint(complaint));
-	}
+    public ComplaintController(ComplaintService complaintService, UserService userService) {
+        this.complaintService = complaintService;
+        this.userService = userService;
+    }
 
-	@PreAuthorize("hasRole('CITIZEN')")
-	@PutMapping("/update/{id}")
-	public ComplaintResponseDto updateComplaint(@PathVariable long id, @Valid @RequestBody ComplaintUpdateDto dto) {
-		Complaint complaint = complaintService.getComplaintById(id);
-		ComplaintMapper.updateEntity(complaint, dto);
-		return ComplaintMapper.toDto(complaintService.updateComplaint(id, complaint));
+    // Raise complaint (Citizen)
+    @PreAuthorize("hasRole('CITIZEN')")
+    @PostMapping
+    public ResponseEntity<ComplaintResponseDto> raiseComplaint(
+            Principal principal,
+            @Valid @RequestBody ComplaintRequestDto dto) {
 
-	}
+        String email = principal.getName();
+        User citizen = userService.getUserByEmail(email);
 
-	@PreAuthorize("hasRole('CITIZEN')")
-	@DeleteMapping("/delete/{id}")
-	public String deleteComplaint(@PathVariable long id) {
-		complaintService.deleteComplaint(id);
-		return "Complaint with ID " + id + " has been deleted.";
-	}
+        Complaint complaint = ComplaintMapper.toEntity(dto, citizen);
+        return ResponseEntity.ok(
+                ComplaintMapper.toDto(complaintService.raiseComplaint(complaint))
+        );
+    }
 
-	@PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
-	@PutMapping("/assignHandler/{id}/{handledBy_id}")
-	public ComplaintResponseDto assignHandler(@PathVariable long id, @PathVariable long handledBy_id) {
+    // Update complaint (Citizen)
+    @PreAuthorize("hasRole('CITIZEN')")
+    @PutMapping("/{id}")
+    public ResponseEntity<ComplaintResponseDto> updateComplaint(
+            @PathVariable long id,
+            @Valid @RequestBody ComplaintUpdateDto dto) {
 
-		return ComplaintMapper.toDto(complaintService.assignHandler(id, handledBy_id));
-	}
+        Complaint complaint = complaintService.getComplaintById(id);
+        ComplaintMapper.updateEntity(complaint, dto);
 
-	@PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
-	@PutMapping("/update-status/{id}/{status}")
-	public ComplaintResponseDto updateStatus(@PathVariable long id, @PathVariable ComplaintStatus status) {
+        return ResponseEntity.ok(
+                ComplaintMapper.toDto(complaintService.updateComplaint(id, complaint))
+        );
+    }
 
-		return ComplaintMapper.toDto(complaintService.updateStatus(id, status));
-	}
+    // Delete complaint
+    @PreAuthorize("hasRole('CITIZEN')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteComplaint(@PathVariable long id) {
+        complaintService.deleteComplaint(id);
+        return ResponseEntity.noContent().build();
+    }
 
-	@PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
-	@GetMapping("/get/{id}")
-	public ComplaintResponseDto getComplaintById(@PathVariable long id) {
+    // Assign handler
+    @PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
+    @PutMapping("/{id}/assign/{handlerId}")
+    public ResponseEntity<ComplaintResponseDto> assignHandler(
+            @PathVariable long id,
+            @PathVariable long handlerId) {
 
-		return ComplaintMapper.toDto(complaintService.getComplaintById(id));
-	}
+        return ResponseEntity.ok(
+                ComplaintMapper.toDto(complaintService.assignHandler(id, handlerId))
+        );
+    }
 
-	@PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
-	@GetMapping("/all")
-	public List<ComplaintResponseDto> getAllComplaints() {
-		return complaintService.getAllComplaints().stream().map(ComplaintMapper::toDto).collect(Collectors.toList());
+    // Update status
+    @PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
+    @PutMapping("/{id}/status")
+    public ResponseEntity<ComplaintResponseDto> updateStatus(
+            @PathVariable long id,
+            @RequestParam ComplaintStatus status) {
 
-	}
+        return ResponseEntity.ok(
+                ComplaintMapper.toDto(complaintService.updateStatus(id, status))
+        );
+    }
 
-	@PreAuthorize("hasRole('CITIZEN')")
-	@GetMapping("/my")
-	public List<ComplaintResponseDto> getComplaintByCitizenId() {
-		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-		String email = auth.getName();
+    // Get by ID
+    @PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
+    @GetMapping("/{id}")
+    public ResponseEntity<ComplaintResponseDto> getComplaintById(@PathVariable long id) {
+        return ResponseEntity.ok(
+                ComplaintMapper.toDto(complaintService.getComplaintById(id))
+        );
+    }
 
-		User citizen = userService.getUserByEmail(email);
-		return complaintService.getComplaintByCitizenId(citizen.getId()).stream().map(ComplaintMapper::toDto)
-				.collect(Collectors.toList());
+    // Get all complaints (pagination)
+    @PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
+    @GetMapping
+    public ResponseEntity<Page<ComplaintResponseDto>> getAllComplaints(Pageable pageable) {
+        return ResponseEntity.ok(
+                complaintService.getAllComplaints(pageable)
+                        .map(ComplaintMapper::toDto)
+        );
+    }
 
-	}
-	@PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
-	@GetMapping("/by-status/{status}")
-	public List<ComplaintResponseDto> getComplaintByStatus(@PathVariable ComplaintStatus status) {
-		return complaintService.getComplaintByStatus(status).stream().map(ComplaintMapper::toDto)
-				.collect(Collectors.toList());
+    // My complaints
+    @PreAuthorize("hasRole('CITIZEN')")
+    @GetMapping("/my")
+    public ResponseEntity<Page<ComplaintResponseDto>> getMyComplaints(
+            Principal principal,
+            Pageable pageable) {
 
-	}
+        String email = principal.getName();
+        User citizen = userService.getUserByEmail(email);
 
-	@PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
-	@GetMapping("/by-handler/{handler_id}")
-	public List<ComplaintResponseDto> getComplaintByHandlerId(@PathVariable long handler_id) {
-		return complaintService.getComplaintByHandlerId(handler_id).stream().map(ComplaintMapper::toDto)
-				.collect(Collectors.toList());
+        return ResponseEntity.ok(
+                complaintService.getComplaintByCitizenId(citizen.getId(), pageable)
+                        .map(ComplaintMapper::toDto)
+        );
+    }
 
-	}
+    // By status
+    @PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
+    @GetMapping("/status")
+    public ResponseEntity<Page<ComplaintResponseDto>> getByStatus(
+            @RequestParam ComplaintStatus status,
+            Pageable pageable) {
 
-	@PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
-	@GetMapping("/search/{title}")
-	public List<ComplaintResponseDto> searchComplaints(@PathVariable String title) {
-		return complaintService.searchComplaints(title).stream().map(ComplaintMapper::toDto)
-				.collect(Collectors.toList());
+        return ResponseEntity.ok(
+                complaintService.getComplaintByStatus(status, pageable)
+                        .map(ComplaintMapper::toDto)
+        );
+    }
 
-	}
+    // By handler
+    @PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
+    @GetMapping("/handler/{handlerId}")
+    public ResponseEntity<Page<ComplaintResponseDto>> getByHandler(
+            @PathVariable long handlerId,
+            Pageable pageable) {
 
-	@PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
-	@GetMapping("/recent/{since}")
-	public List<ComplaintResponseDto> getRecentComplaints(
-			@PathVariable @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate since) {
-		return complaintService.getRecentComplaints(since).stream().map(ComplaintMapper::toDto)
-				.collect(Collectors.toList());
+        return ResponseEntity.ok(
+                complaintService.getComplaintByHandlerId(handlerId, pageable)
+                        .map(ComplaintMapper::toDto)
+        );
+    }
 
-	}
+    // Search
+    @PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
+    @GetMapping("/search")
+    public ResponseEntity<Page<ComplaintResponseDto>> searchComplaints(
+            @RequestParam String title,
+            Pageable pageable) {
 
+        return ResponseEntity.ok(
+                complaintService.searchComplaints(title, pageable)
+                        .map(ComplaintMapper::toDto)
+        );
+    }
+
+    // Recent complaints
+    @PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
+    @GetMapping("/recent")
+    public ResponseEntity<Page<ComplaintResponseDto>> getRecentComplaints(
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate since,
+            Pageable pageable) {
+
+        return ResponseEntity.ok(
+                complaintService.getRecentComplaints(since, pageable)
+                        .map(ComplaintMapper::toDto)
+        );
+    }
 }

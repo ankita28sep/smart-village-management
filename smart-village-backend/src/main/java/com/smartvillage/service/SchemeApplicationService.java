@@ -1,41 +1,47 @@
 package com.smartvillage.service;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
-import com.smartvillage.entity.Eligibility;
 import com.smartvillage.entity.SchemeApplication;
 import com.smartvillage.enums.ApplicationStatus;
 
 public interface SchemeApplicationService {
 
-	SchemeApplication applyToScheme(SchemeApplication application);
+    // APPLY
+    SchemeApplication applyToScheme(SchemeApplication application);
 
-	SchemeApplication updateApplication(long applicationId, SchemeApplication application);
+    // UPDATE
+    SchemeApplication updateApplication(long applicationId, SchemeApplication application);
 
-	SchemeApplication updateApplicationStatus(long applicationId, ApplicationStatus status);
+    // STATUS UPDATE
+    SchemeApplication updateApplicationStatus(long applicationId, ApplicationStatus status);
 
-	void deleteApplication(long applicationId);
+    // DELETE
+    void deleteApplication(long applicationId);
 
-	SchemeApplication getApplicationById(long applicationId);
+    // GET SINGLE
+    SchemeApplication getApplicationById(long applicationId);
 
-	SchemeApplication findByApplicant_IdAndScheme_Id(long applicantId, long schemeId);
+    SchemeApplication findByApplicant_IdAndScheme_Id(long applicantId, long schemeId);
 
-	List<SchemeApplication> getAllApplications();
+    // ================= PAGINATED METHODS =================
 
-	List<SchemeApplication> getApplicationsByApplicantId(long applicantId);
+    Page<SchemeApplication> getAllApplications(Pageable pageable);
 
-	List<SchemeApplication> getApplicationsBySchemeId(long schemeId);
+    Page<SchemeApplication> getApplicationsByApplicantId(long applicantId, Pageable pageable);
 
-	List<SchemeApplication> getApplicationsByStatus(ApplicationStatus status);
+    Page<SchemeApplication> getApplicationsBySchemeId(long schemeId, Pageable pageable);
 
-	List<SchemeApplication> searchApplicationsByApplicantName(String keyword);
+    Page<SchemeApplication> getApplicationsByStatus(ApplicationStatus status, Pageable pageable);
 
-	List<SchemeApplication> searchApplicationsBySchemeName(String keyword);
+    Page<SchemeApplication> getApplicationsByYear(int year, Pageable pageable);
 
-	SchemeApplication cancelApplication(long id);
+    Page<SchemeApplication> searchApplicationsByApplicantName(String keyword, Pageable pageable);
 
-	List<SchemeApplication> getApplicationsByYear(int year);
+    Page<SchemeApplication> searchApplicationsBySchemeName(String keyword, Pageable pageable);
 
-	void checkEligibility(SchemeApplication app, Eligibility e);
+    // ================= ACTIONS =================
 
+    SchemeApplication cancelApplication(long id);
 }

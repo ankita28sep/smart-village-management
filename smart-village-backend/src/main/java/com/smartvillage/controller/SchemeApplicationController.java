@@ -1,20 +1,12 @@
 package com.smartvillage.controller;
 
-import java.util.List;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.smartvillage.dto.schemeApplication.SchemeApplicationRequestDto;
 import com.smartvillage.dto.schemeApplication.SchemeApplicationResponseDto;
@@ -31,122 +23,151 @@ import com.smartvillage.service.UserService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/schemeApplications")
+@RequestMapping("/applications")
 @Validated
 public class SchemeApplicationController {
-	@Autowired
-	private SchemeApplicationService applicationService;
-	@Autowired
-	private UserService userService;
-	@Autowired
-	private SchemeService schemeService;
 
-	@PreAuthorize("hasRole('CITIZEN')")
-	@PostMapping("/apply")
-	public SchemeApplicationResponseDto apply(@Valid @RequestBody SchemeApplicationRequestDto dto) {
-		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    private final SchemeApplicationService applicationService;
+    private final UserService userService;
+    private final SchemeService schemeService;
 
-		String email = auth.getName();
+    public SchemeApplicationController(SchemeApplicationService applicationService,
+                                       UserService userService,
+                                       SchemeService schemeService) {
+        this.applicationService = applicationService;
+        this.userService = userService;
+        this.schemeService = schemeService;
+    }
 
-		User user = userService.getUserByEmail(email);
-		Scheme scheme = schemeService.getSchemeById(dto.getSchemeId());
-		SchemeApplication application = SchemeApplicationMapper.toEntity(dto, user, scheme);
-		return SchemeApplicationMapper.toDto(applicationService.applyToScheme(application));
-	}
+    // APPLY TO SCHEME
+    @PreAuthorize("hasRole('CITIZEN')")
+    @PostMapping
+    public ResponseEntity<SchemeApplicationResponseDto> apply(
+            @Valid @RequestBody SchemeApplicationRequestDto dto,
+            java.security.Principal principal) {
 
-	@PreAuthorize("hasRole('CITIZEN')")
-	@PutMapping("/update/{id}")
-	public SchemeApplicationResponseDto updateApplication(@PathVariable long id,
-			@Valid @RequestBody SchemeApplicationUpdateDto dto) {
+        User user = userService.getUserByEmail(principal.getName());
+        Scheme scheme = schemeService.getSchemeById(dto.getSchemeId());
 
-		SchemeApplication application = applicationService.getApplicationById(id);
-		SchemeApplicationMapper.updateEntity(application, dto);
+        SchemeApplication application =
+                SchemeApplicationMapper.toEntity(dto, user, scheme);
 
-		return SchemeApplicationMapper.toDto(applicationService.updateApplication(id, application));
-	}
+        return ResponseEntity.ok(
+                SchemeApplicationMapper.toDto(
+                        applicationService.applyToScheme(application)
+                )
+        );
+    }
 
-	@PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
-	@PutMapping("/update-status/{id}/{status}")
-	public SchemeApplicationResponseDto updateStatus(@PathVariable long id, @PathVariable ApplicationStatus status) {
-		return SchemeApplicationMapper.toDto(applicationService.updateApplicationStatus(id, status));
-	}
+    // UPDATE APPLICATION
+    @PreAuthorize("hasRole('CITIZEN')")
+    @PutMapping("/{id}")
+    public ResponseEntity<SchemeApplicationResponseDto> updateApplication(
+            @PathVariable long id,
+            @Valid @RequestBody SchemeApplicationUpdateDto dto) {
 
-	@PreAuthorize("hasRole('CITIZEN')")
-	@DeleteMapping("/delete/{id}")
-	public String delete(@PathVariable long id) {
-		applicationService.deleteApplication(id);
-		return "Scheme application with ID " + id + " has been deleted.";
-	}
+        SchemeApplication application = applicationService.getApplicationById(id);
+        SchemeApplicationMapper.updateEntity(application, dto);
 
-	@PreAuthorize("hasRole('ADMIN')")
-	@GetMapping("/byId/{id}")
-	public SchemeApplicationResponseDto getApplicationById(@PathVariable long id) {
-		return SchemeApplicationMapper.toDto(applicationService.getApplicationById(id));
-	}
+        return ResponseEntity.ok(
+                SchemeApplicationMapper.toDto(
+                        applicationService.updateApplication(id, application)
+                )
+        );
+    }
 
-	@PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
-	@GetMapping("/all")
-	public List<SchemeApplicationResponseDto> getAllApplications() {
-		return applicationService.getAllApplications().stream().map(SchemeApplicationMapper::toDto).toList();
-	}
+    // UPDATE STATUS (ADMIN/SARPANCH)
+    @PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
+    @PutMapping("/{id}/status/{status}")
+    public ResponseEntity<SchemeApplicationResponseDto> updateStatus(
+            @PathVariable long id,
+            @PathVariable ApplicationStatus status) {
 
-	@PreAuthorize("hasRole('CITIZEN')")
-	@GetMapping("/my")
-	public List<SchemeApplicationResponseDto> getApplicationsByApplicantId() {
-		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return ResponseEntity.ok(
+                SchemeApplicationMapper.toDto(
+                        applicationService.updateApplicationStatus(id, status)
+                )
+        );
+    }
 
-		String email = auth.getName();
+    // DELETE APPLICATION
+    @PreAuthorize("hasRole('CITIZEN')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> delete(@PathVariable long id) {
+        applicationService.deleteApplication(id);
+        return ResponseEntity.ok("Application deleted successfully");
+    }
 
-		User user = userService.getUserByEmail(email);
-		return applicationService.getApplicationsByApplicantId(user.getId()).stream()
-				.map(SchemeApplicationMapper::toDto).toList();
-	}
+    // GET BY ID
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/{id}")
+    public ResponseEntity<SchemeApplicationResponseDto> getById(@PathVariable long id) {
+        return ResponseEntity.ok(
+                SchemeApplicationMapper.toDto(
+                        applicationService.getApplicationById(id)
+                )
+        );
+    }
 
-	@PreAuthorize("hasRole('ADMIN')")
-	@GetMapping("/by-schemeId/{schemeId}")
-	public List<SchemeApplicationResponseDto> getApplicationsBySchemeId(@PathVariable long schemeId) {
-		return applicationService.getApplicationsBySchemeId(schemeId).stream().map(SchemeApplicationMapper::toDto)
-				.toList();
-	}
+    // GET ALL (PAGINATED)
+    @PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
+    @GetMapping
+    public ResponseEntity<Page<SchemeApplicationResponseDto>> getAll(Pageable pageable) {
+        return ResponseEntity.ok(
+                applicationService.getAllApplications(pageable)
+                        .map(SchemeApplicationMapper::toDto)
+        );
+    }
 
-	@PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
-	@GetMapping("/by-status/{status}")
-	public List<SchemeApplicationResponseDto> getApplicationsByStatus(@PathVariable ApplicationStatus status) {
-		return applicationService.getApplicationsByStatus(status).stream().map(SchemeApplicationMapper::toDto).toList();
-	}
+    // GET MY APPLICATIONS (PAGINATED)
+    @PreAuthorize("hasRole('CITIZEN')")
+    @GetMapping("/my")
+    public ResponseEntity<Page<SchemeApplicationResponseDto>> getMyApplications(
+            Pageable pageable,
+            java.security.Principal principal) {
 
-	@PreAuthorize("hasRole('ADMIN')")
-	@GetMapping("/by-year/{year}")
-	public List<SchemeApplicationResponseDto> getApplicationsByYear(@PathVariable int year) {
-		return applicationService.getApplicationsByYear(year).stream().map(SchemeApplicationMapper::toDto).toList();
-	}
+        User user = userService.getUserByEmail(principal.getName());
 
-	@PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
-	@PutMapping("/cancel/{id}")
-	public SchemeApplicationResponseDto cancelApplication(@PathVariable long id) {
-		return SchemeApplicationMapper.toDto(applicationService.cancelApplication(id));
+        return ResponseEntity.ok(
+                applicationService.getApplicationsByApplicantId(user.getId(), pageable)
+                        .map(SchemeApplicationMapper::toDto)
+        );
+    }
 
-	}
+    // BY SCHEME ID (PAGINATED)
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/scheme/{schemeId}")
+    public ResponseEntity<Page<SchemeApplicationResponseDto>> getBySchemeId(
+            @PathVariable long schemeId,
+            Pageable pageable) {
 
-	@PreAuthorize("hasRole('ADMIN')")
-	@GetMapping("/find/{applicantId}/{schemeId}")
-	public SchemeApplicationResponseDto findByApplicant_IdAndScheme_Id(@PathVariable long applicantId,
-			@PathVariable long schemeId) {
-		return SchemeApplicationMapper.toDto(applicationService.findByApplicant_IdAndScheme_Id(applicantId, schemeId));
-	}
+        return ResponseEntity.ok(
+                applicationService.getApplicationsBySchemeId(schemeId, pageable)
+                        .map(SchemeApplicationMapper::toDto)
+        );
+    }
 
-	@PreAuthorize("hasRole('ADMIN')")
-	@GetMapping("/find-by-applicant/{applicantName}")
-	public List<SchemeApplicationResponseDto> searchApplicationsByApplicantName(@PathVariable String applicantName) {
-		return applicationService.searchApplicationsByApplicantName(applicantName).stream()
-				.map(SchemeApplicationMapper::toDto).toList();
-	}
+    // BY STATUS (PAGINATED)
+    @PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
+    @GetMapping("/status/{status}")
+    public ResponseEntity<Page<SchemeApplicationResponseDto>> getByStatus(
+            @PathVariable ApplicationStatus status,
+            Pageable pageable) {
 
-	@PreAuthorize("hasRole('ADMIN')")
-	@GetMapping("/by-schemeName/{schemeName}")
-	public List<SchemeApplicationResponseDto> searchApplicationsBySchemeName(@PathVariable String schemeName) {
-		return applicationService.searchApplicationsBySchemeName(schemeName).stream()
-				.map(SchemeApplicationMapper::toDto).toList();
-	}
+        return ResponseEntity.ok(
+                applicationService.getApplicationsByStatus(status, pageable)
+                        .map(SchemeApplicationMapper::toDto)
+        );
+    }
 
+    // CANCEL APPLICATION
+    @PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<SchemeApplicationResponseDto> cancel(@PathVariable long id) {
+        return ResponseEntity.ok(
+                SchemeApplicationMapper.toDto(
+                        applicationService.cancelApplication(id)
+                )
+        );
+    }
 }

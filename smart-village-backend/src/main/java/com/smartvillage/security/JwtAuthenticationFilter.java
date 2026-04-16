@@ -2,7 +2,6 @@ package com.smartvillage.security;
 
 import java.io.IOException;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -11,74 +10,69 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-	    @Autowired
-	    private JwtUtil jwtUtil;
+    private final JwtUtil jwtUtil;
+    private final CustomUserDetailsService userDetailsService;
 
-	    @Autowired
-	    private CustomUserDetailsService userDetailsService;
+    public JwtAuthenticationFilter(JwtUtil jwtUtil,
+                                   CustomUserDetailsService userDetailsService) {
+        this.jwtUtil = jwtUtil;
+        this.userDetailsService = userDetailsService;
+    }
 
-	    @Override
-	    protected void doFilterInternal(HttpServletRequest request,
-	                                    HttpServletResponse response,
-	                                    FilterChain filterChain)
-	            throws ServletException, IOException {
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
+            throws ServletException, IOException {
 
-	        final String authHeader = request.getHeader("Authorization");
-	        String email = null;
-	        String token = null;
+        final String authHeader = request.getHeader("Authorization");
 
-	        // 1️ Check if header exists and starts with Bearer
-	        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-	            token = authHeader.substring(7);
-	            email = jwtUtil.extractEmail(token);
-	        }
+        String email = null;
+        String token = null;
 
-	        // 2️ If email found and user not already authenticated
-	        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        // Extract token
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
 
-	            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+            try {
+                email = jwtUtil.extractEmail(token);
+            } catch (JwtException e) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+        }
 
-	            try {
-		            // validate token
-	            if (jwtUtil.validateToken(token, userDetails)) {
+        // Authenticate user
+        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-	                UsernamePasswordAuthenticationToken authToken =
-	                        new UsernamePasswordAuthenticationToken(
-	                                userDetails,
-	                                null,
-	                                userDetails.getAuthorities()
-	                        );
+            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-	                authToken.setDetails(
-	                        new WebAuthenticationDetailsSource().buildDetails(request)
-	                );
+            if (jwtUtil.validateToken(token, userDetails)) {
 
-	                // 4️ Set authentication in Spring Security
-	                SecurityContextHolder.getContext().setAuthentication(authToken);
-	            }
-	        }
-	       
-	         catch (ExpiredJwtException e) {
-	            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-	            response.getWriter().write("Token expired");
-	            return;
-	        } catch (Exception e) {
-	            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-	            response.getWriter().write("Invalid token");
-	            return;
-	        }
-	        }
+                UsernamePasswordAuthenticationToken authToken =
+                        new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities()
+                        );
 
-	        // Continue filter chain
-	        filterChain.doFilter(request, response);
-	    
-	    }
+                authToken.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request)
+                );
 
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+            }
+        }
+
+        filterChain.doFilter(request, response);
+    }
 }

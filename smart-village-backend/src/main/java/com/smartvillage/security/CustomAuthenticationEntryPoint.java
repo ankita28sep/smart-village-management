@@ -8,26 +8,29 @@ import org.springframework.stereotype.Component;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 @Component
 public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
-	@Override
-	public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException ex)
-			throws IOException {
+    @Override
+    public void commence(HttpServletRequest request,
+                         HttpServletResponse response,
+                         AuthenticationException ex)
+            throws IOException {
 
-		response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-		response.setContentType("application/json");
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
 
-		String message = ex.getMessage();
+        String responseBody = String.format("""
+        {
+            "status": 401,
+            "error": "Unauthorized",
+            "message": "Authentication required or invalid token",
+            "path": "%s"
+        }
+        """, request.getRequestURI());
 
-		response.getWriter().write("""
-				{
-				    "status": 401,
-				    "error": "Unauthorized",
-				    "message": "%s",
-				    "path": "%s"
-				}
-				""".formatted(message, request.getRequestURI()));
-	}
-
+        response.getWriter().write(responseBody);
+        response.getWriter().flush();
+    }
 }

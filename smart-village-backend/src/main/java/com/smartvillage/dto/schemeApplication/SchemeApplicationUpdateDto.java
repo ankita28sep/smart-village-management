@@ -87,7 +87,7 @@ public class SchemeApplicationUpdateDto {
 		public void setDepartment(String department) {
 			this.department = department;
 		}
-		public boolean isDisability() {
+		public Boolean getDisability() {
 			return disability;
 		}
 		public void setDisability(boolean disability) {
@@ -117,5 +117,6 @@ public class SchemeApplicationUpdateDto {
 		public void setPhotoPath(String photoPath) {
 			this.photoPath = photoPath;
 		}
+		
 		
 }

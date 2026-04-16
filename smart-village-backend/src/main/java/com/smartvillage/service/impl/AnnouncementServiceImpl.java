@@ -1,9 +1,9 @@
 package com.smartvillage.service.impl;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.smartvillage.entity.Announcement;
@@ -19,89 +19,86 @@ import jakarta.transaction.Transactional;
 @Service
 @Transactional
 public class AnnouncementServiceImpl implements AnnouncementService {
-	@Autowired
-	private AnnouncementRepository announcementRepository;
-	
 
-	// POST ANNOUNCEMENT
-	@Override
-	public Announcement postAnnouncement(Announcement announcement) {
-		if (announcementRepository.findFirstByTitleContainingIgnoreCase(announcement.getTitle()).isPresent()) {
-			throw new DuplicateResourceException(
-					"announcement with title " + announcement.getTitle() + " already exists");
-		}
-		announcement.setPostedBy(announcement.getPostedBy());
-		announcement.setPostedAt(LocalDateTime.now());
-		announcement.setType(announcement.getType());
-		announcement.setStatus(AnnouncementStatus.ACTIVE);
-		return announcementRepository.save(announcement);
-	}
+    private final AnnouncementRepository announcementRepository;
 
-	// UPDATE ANNOUNCEMENT
-	@Override
-	public Announcement updateAnnouncement(long id, Announcement announcement) {
-		Announcement existingAnnouncement = announcementRepository.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException("announcement", "id", id));
-		return announcementRepository.save(existingAnnouncement);
-	}
+    public AnnouncementServiceImpl(AnnouncementRepository announcementRepository) {
+        this.announcementRepository = announcementRepository;
+    }
 
-	// DELETE ANNOUNCEMENT
-	@Override
-	public void deleteAnnouncement(long id) {
-		Announcement existingAnnouncement = announcementRepository.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException("announcement", "id", id));
-		announcementRepository.delete(existingAnnouncement);
-	}
+    // POST ANNOUNCEMENT
+    @Override
+    public Announcement postAnnouncement(Announcement announcement) {
 
-	// GET ANNOUNCEMENT BY ID
-	@Override
-	public Announcement getAnnouncementById(long id) {
-		return announcementRepository.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException("announcement", "id", id));
-	}
+        if (announcementRepository.existsByTitleIgnoreCase(announcement.getTitle())) {
+            throw new DuplicateResourceException(
+                    "Announcement with title '" + announcement.getTitle() + "' already exists");
+        }
 
-	// GET ALL ANNOUNCEMENTS
-	@Override
-	public List<Announcement> getAllAnnouncements() {
-		return announcementRepository.findAll();
-	}
+        announcement.setPostedAt(LocalDateTime.now());
+        announcement.setStatus(AnnouncementStatus.ACTIVE);
 
-	// GET ANNOUNCEMENTS POSTED BY USER
-	@Override
-	public List<Announcement> getAnnouncementsPostedBy(long postedById) {
-		return announcementRepository.findByPostedBy_Id(postedById);
-	}
+        return announcementRepository.save(announcement);
+    }
 
-	// SEARCH ANNOUNCEMENT BY TITLE
-	@Override
-	public List<Announcement> searchAnnouncement(String title) {
-		return announcementRepository.findByTitleContainingIgnoreCase(title);
-	}
+    // UPDATE ANNOUNCEMENT
+    @Override
+    public Announcement updateAnnouncement(long id, Announcement announcement) {
 
-	// GET RECENT ANNOUNCEMENTS
-	@Override
-	public List<Announcement> getRecentAnnouncements(LocalDateTime since) {
-		return announcementRepository.findByPostedAtAfter(since);
-	}
+        Announcement existing = getAnnouncementById(id);
 
-	// GET ANNOUNCEMENTS BY TYPE
-	@Override
-	public List<Announcement> getAnnouncementsByType(AnnouncementType type) {
+        // Mapper already updated fields → just save
+        return announcementRepository.save(announcement);
+    }
 
-		return announcementRepository.findByType(type);
-	}
+    // DELETE
+    @Override
+    public void deleteAnnouncement(long id) {
+        Announcement existing = getAnnouncementById(id);
+        announcementRepository.delete(existing);
+    }
 
-//GET ANNOUNCEMENTS BY STATUS
-	@Override
-	public List<Announcement> getAnnouncementsByStatus(AnnouncementStatus status) {
-		return announcementRepository.findByStatus(status);
+    // GET BY ID
+    @Override
+    public Announcement getAnnouncementById(long id) {
+        return announcementRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Announcement", "id", id));
+    }
 
-	}
+    // PAGINATED METHODS
 
-	@Override
-	public List<Announcement> findByActiveTrue() {
+    @Override
+    public Page<Announcement> getAllAnnouncements(Pageable pageable) {
+        return announcementRepository.findAll(pageable);
+    }
 
-		return announcementRepository.findByStatus(AnnouncementStatus.ACTIVE);
-	}
+    @Override
+    public Page<Announcement> getAnnouncementsPostedBy(long postedById, Pageable pageable) {
+        return announcementRepository.findByPostedBy_Id(postedById, pageable);
+    }
 
+    @Override
+    public Page<Announcement> searchAnnouncement(String title, Pageable pageable) {
+        return announcementRepository.findByTitleContainingIgnoreCase(title, pageable);
+    }
+
+    @Override
+    public Page<Announcement> getRecentAnnouncements(LocalDateTime since, Pageable pageable) {
+        return announcementRepository.findByPostedAtAfter(since, pageable);
+    }
+
+    @Override
+    public Page<Announcement> getAnnouncementsByType(AnnouncementType type, Pageable pageable) {
+        return announcementRepository.findByType(type, pageable);
+    }
+
+    @Override
+    public Page<Announcement> getAnnouncementsByStatus(AnnouncementStatus status, Pageable pageable) {
+        return announcementRepository.findByStatus(status, pageable);
+    }
+
+    @Override
+    public Page<Announcement> findByActiveTrue(Pageable pageable) {
+        return announcementRepository.findByStatus(AnnouncementStatus.ACTIVE, pageable);
+    }
 }

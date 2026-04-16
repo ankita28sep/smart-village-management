@@ -3,123 +3,124 @@ package com.smartvillage.dto.scheme;
 import java.time.LocalDate;
 
 public class SchemeResponseDto {
-	private long id;
-	private String name;
-	private String description;
-	private LocalDate startDate;
-	private LocalDate endDate;
-	private Boolean active;
-	private String postedBy;
-	// Eligibility fields
-	private Integer financialYear;
-	private String religion;
-	private String casteCategory;
-	private double annualIncome;
-	private boolean disability;
-	private String department;
 
-	public long getId() {
-		return id;
-	}
+    private long id;
+    private String name;
+    private String description;
+    private LocalDate startDate;
+    private LocalDate endDate;
+    private Boolean active;
+    private String postedBy;
 
-	public void setId(long id) {
-		this.id = id;
-	}
+    // Eligibility fields
+    private Integer financialYear;
+    private String religion;
+    private String casteCategory;
+    private Double annualIncome;
+    private Boolean disability;
+    private String department;
 
-	public String getName() {
-		return name;
-	}
+    public long getId() {
+        return id;
+    }
 
-	public void setName(String name) {
-		this.name = name;
-	}
+    public void setId(long id) {
+        this.id = id;
+    }
 
-	public String getDescription() {
-		return description;
-	}
+    public String getName() {
+        return name;
+    }
 
-	public void setDescription(String description) {
-		this.description = description;
-	}
+    public void setName(String name) {
+        this.name = name;
+    }
 
-	public Boolean getActive() {
-		return active;
-	}
+    public String getDescription() {
+        return description;
+    }
 
-	public void setActive(Boolean active) {
-		this.active = active;
-	}
+    public void setDescription(String description) {
+        this.description = description;
+    }
 
-	public LocalDate getStartDate() {
-		return startDate;
-	}
+    public Boolean getActive() {
+        return active;
+    }
 
-	public void setStartDate(LocalDate startDate) {
-		this.startDate = startDate;
-	}
+    public void setActive(Boolean active) {
+        this.active = active;
+    }
 
-	public LocalDate getEndDate() {
-		return endDate;
-	}
+    public LocalDate getStartDate() {
+        return startDate;
+    }
 
-	public void setEndDate(LocalDate endDate) {
-		this.endDate = endDate;
-	}
+    public void setStartDate(LocalDate startDate) {
+        this.startDate = startDate;
+    }
 
-	public String getPostedBy() {
-		return postedBy;
-	}
+    public LocalDate getEndDate() {
+        return endDate;
+    }
 
-	public void setPostedBy(String postedBy) {
-		this.postedBy = postedBy;
-	}
+    public void setEndDate(LocalDate endDate) {
+        this.endDate = endDate;
+    }
 
-	public int getFinancialYear() {
-		return financialYear;
-	}
+    public String getPostedBy() {
+        return postedBy;
+    }
 
-	public void setFinancialYear(int financialYear) {
-		this.financialYear = financialYear;
-	}
+    public void setPostedBy(String postedBy) {
+        this.postedBy = postedBy;
+    }
 
-	public String getReligion() {
-		return religion;
-	}
+    public Integer getFinancialYear() {
+        return financialYear;
+    }
 
-	public void setReligion(String religion) {
-		this.religion = religion;
-	}
+    public void setFinancialYear(Integer financialYear) {
+        this.financialYear = financialYear;
+    }
 
-	public String getCasteCategory() {
-		return casteCategory;
-	}
+    public String getReligion() {
+        return religion;
+    }
 
-	public void setCasteCategory(String casteCategory) {
-		this.casteCategory = casteCategory;
-	}
+    public void setReligion(String religion) {
+        this.religion = religion;
+    }
 
-	public double getAnnualIncome() {
-		return annualIncome;
-	}
+    public String getCasteCategory() {
+        return casteCategory;
+    }
 
-	public void setAnnualIncome(double annualIncome) {
-		this.annualIncome = annualIncome;
-	}
+    public void setCasteCategory(String casteCategory) {
+        this.casteCategory = casteCategory;
+    }
 
-	public boolean isDisability() {
-		return disability;
-	}
+    public Double getAnnualIncome() {
+        return annualIncome;
+    }
 
-	public void setDisability(boolean disability) {
-		this.disability = disability;
-	}
+    public void setAnnualIncome(Double annualIncome) {
+        this.annualIncome = annualIncome;
+    }
 
-	public String getDepartment() {
-		return department;
-	}
+    public Boolean getDisability() {
+        return disability;
+    }
 
-	public void setDepartment(String department) {
-		this.department = department;
-	}
+    public void setDisability(Boolean disability) {
+        this.disability = disability;
+    }
 
+    public String getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(String department) {
+        this.department = department;
+    }
 }
