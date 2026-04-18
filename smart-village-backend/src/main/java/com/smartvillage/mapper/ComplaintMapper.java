@@ -31,13 +31,11 @@ public class ComplaintMapper {
 
         // Citizen info
         if (c.getCitizen() != null) {
-            dto.setCitizenId(c.getCitizen().getId());
             dto.setCitizenName(c.getCitizen().getName());
         }
 
         // Handler info
         if (c.getHandledBy() != null) {
-            dto.setHandledById(c.getHandledBy().getId());
             dto.setHandledByName(c.getHandledBy().getName());
         }
 

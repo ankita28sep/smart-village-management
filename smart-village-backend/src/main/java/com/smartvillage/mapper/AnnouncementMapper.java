@@ -28,7 +28,6 @@ public class AnnouncementMapper {
 		dto.setPostedAt(announcement.getPostedAt());
 		if(announcement.getPostedBy()!=null) {
 			dto.setPostedByName(announcement.getPostedBy().getName());
-			dto.setPostedById(announcement.getPostedBy().getId());
 		dto.setStatus(announcement.getStatus());
 		dto.setType(announcement.getType());
 		

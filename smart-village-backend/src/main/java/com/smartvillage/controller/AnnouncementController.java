@@ -26,7 +26,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @Validated
-@RequestMapping("/announcements")
+@RequestMapping("/api/announcements")
 public class AnnouncementController {
 
     private final AnnouncementService announcementService;

@@ -11,7 +11,7 @@ public class AnnouncementResponseDto {
     private String title;
     private String content;
 
-    private Long postedById;
+   
     private String postedByName;
 
     private AnnouncementType type;
@@ -41,14 +41,6 @@ public class AnnouncementResponseDto {
 
     public void setContent(String content) {
         this.content = content;
-    }
-
-    public Long getPostedById() {
-        return postedById;
-    }
-
-    public void setPostedById(Long postedById) {
-        this.postedById = postedById;
     }
 
     public String getPostedByName() {

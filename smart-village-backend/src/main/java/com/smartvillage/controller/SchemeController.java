@@ -21,7 +21,7 @@ import com.smartvillage.service.UserService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/schemes")
+@RequestMapping("/api/schemes")
 @Validated
 public class SchemeController {
 

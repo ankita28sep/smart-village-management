@@ -4,78 +4,59 @@ import com.smartvillage.enums.ComplaintStatus;
 
 public class ComplaintResponseDto {
 
-    private Long id;
-    private String title;
-    private String description;
-    private ComplaintStatus status;
+	private Long id;
+	private String title;
+	private String description;
+	private ComplaintStatus status;
+	private String citizenName;
+	private String handledByName;
 
-    private Long citizenId;
-    private String citizenName;
+	public Long getId() {
+		return id;
+	}
 
-    private Long handledById;
-    private String handledByName;
+	public void setId(Long id) {
+		this.id = id;
+	}
 
-    public Long getId() {
-        return id;
-    }
+	public String getTitle() {
+		return title;
+	}
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+	public void setTitle(String title) {
+		this.title = title;
+	}
 
-    public String getTitle() {
-        return title;
-    }
+	public String getDescription() {
+		return description;
+	}
 
-    public void setTitle(String title) {
-        this.title = title;
-    }
+	public void setDescription(String description) {
+		this.description = description;
+	}
 
-    public String getDescription() {
-        return description;
-    }
+	public ComplaintStatus getStatus() {
+		return status;
+	}
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
+	public void setStatus(ComplaintStatus status) {
+		this.status = status;
+	}
 
-    public ComplaintStatus getStatus() {
-        return status;
-    }
+	public String getCitizenName() {
+		return citizenName;
+	}
 
-    public void setStatus(ComplaintStatus status) {
-        this.status = status;
-    }
+	public void setCitizenName(String citizenName) {
+		this.citizenName = citizenName;
+	}
 
-    public Long getCitizenId() {
-        return citizenId;
-    }
 
-    public void setCitizenId(Long citizenId) {
-        this.citizenId = citizenId;
-    }
+	public String getHandledByName() {
+		return handledByName;
+	}
 
-    public String getCitizenName() {
-        return citizenName;
-    }
-
-    public void setCitizenName(String citizenName) {
-        this.citizenName = citizenName;
-    }
-
-    public Long getHandledById() {
-        return handledById;
-    }
-
-    public void setHandledById(Long handledById) {
-        this.handledById = handledById;
-    }
-
-    public String getHandledByName() {
-        return handledByName;
-    }
-
-    public void setHandledByName(String handledByName) {
-        this.handledByName = handledByName;
-    }
+	public void setHandledByName(String handledByName) {
+		this.handledByName = handledByName;
+	}
 }

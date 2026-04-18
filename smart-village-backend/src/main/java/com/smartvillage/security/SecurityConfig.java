@@ -44,20 +44,20 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
 
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/auth/**",
-                    "/schemes/active",
-                    "/schemes/{id}",
-                    "/schemes/search/**",
-                    "/schemes/by-eligibility",
-                    "/announcements/active",
-                    "/announcements/search/**",
-                    "/swagger-ui/**",
-                    "/v3/api-docs/**",
-                    "/swagger-ui.html"
-                ).permitAll()
-                .anyRequest().authenticated()
-            )
+            	    .requestMatchers(
+            	        "/api/auth/**",
+            	        "/api/schemes/active",
+            	        "/api/schemes/{id}",
+            	        "/api/schemes/search/**",
+            	        "/api/schemes/by-eligibility",
+            	        "/api/announcements/active",
+            	        "/api/announcements/search/**",
+            	        "/swagger-ui/**",
+            	        "/v3/api-docs/**",
+            	        "/swagger-ui.html"
+            	    ).permitAll()
+            	    .anyRequest().authenticated()
+            	)
 
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(customAuthenticationEntryPoint)

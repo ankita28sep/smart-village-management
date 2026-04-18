@@ -14,8 +14,7 @@ public class SchemeRequestDto {
 	private LocalDate startDate;
 	@NotNull(message = "End date is required")
 	private LocalDate endDate;
-	@NotNull(message = "PostedBy is required")
-	private Long postedBy;
+	
 
 	// Eligibility fields
 	@NotNull(message = "finantial Year is required")
@@ -78,10 +77,6 @@ public class SchemeRequestDto {
 		this.department = department;
 	}
 
-	public void setPostedBy(Long postedBy) {
-		this.postedBy = postedBy;
-	}
-
 	public String getName() {
 		return name;
 	}
@@ -114,12 +109,5 @@ public class SchemeRequestDto {
 		this.endDate = endDate;
 	}
 
-	public long getPostedBy() {
-		return postedBy;
-	}
-
-	public void setPostedBy(long postedBy) {
-		this.postedBy = postedBy;
-	}
-
+	
 }

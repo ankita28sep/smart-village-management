@@ -29,7 +29,7 @@ import com.smartvillage.service.UserService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/applications")
+@RequestMapping("/api/applications")
 @Validated
 public class SchemeApplicationController {
 

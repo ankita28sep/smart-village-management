@@ -25,7 +25,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @Validated
-@RequestMapping("/complaints")
+@RequestMapping("/api/complaints")
 public class ComplaintController {
 
     private final ComplaintService complaintService;
