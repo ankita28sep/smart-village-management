@@ -51,7 +51,10 @@ public class SecurityConfig {
                     "/schemes/search/**",
                     "/schemes/by-eligibility",
                     "/announcements/active",
-                    "/announcements/search/**"
+                    "/announcements/search/**",
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**",
+                    "/swagger-ui.html"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

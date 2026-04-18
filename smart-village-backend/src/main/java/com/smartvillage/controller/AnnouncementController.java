@@ -40,7 +40,7 @@ public class AnnouncementController {
 
     // Create announcement
     @PreAuthorize("hasAnyRole('ADMIN', 'SARPANCH')")
-    @PostMapping
+    @PostMapping("/post")
     public ResponseEntity<AnnouncementResponseDto> postAnnouncement(
             Principal principal,
             @Valid @RequestBody AnnouncementRequestDto dto) {
@@ -171,6 +171,20 @@ public class AnnouncementController {
         return ResponseEntity.ok(
                 announcementService.getRecentAnnouncements(since, pageable)
                         .map(AnnouncementMapper::toDto)
+        );
+    }
+
+    // Activate / Inactivate (change status)
+    @PreAuthorize("hasAnyRole('ADMIN', 'SARPANCH')")
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<AnnouncementResponseDto> changeStatus(
+            @PathVariable long id,
+            @RequestParam AnnouncementStatus status) {
+
+        return ResponseEntity.ok(
+                AnnouncementMapper.toDto(
+                        announcementService.changeStatus(id, status)
+                )
         );
     }
 }

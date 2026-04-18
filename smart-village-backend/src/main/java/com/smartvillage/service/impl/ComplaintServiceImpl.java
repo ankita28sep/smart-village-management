@@ -10,6 +10,7 @@ import com.smartvillage.entity.Complaint;
 import com.smartvillage.entity.User;
 import com.smartvillage.enums.ComplaintStatus;
 import com.smartvillage.enums.UserRole;
+import com.smartvillage.exceptions.DuplicateResourceException;
 import com.smartvillage.exceptions.InvalidDataException;
 import com.smartvillage.exceptions.ResourceNotFoundException;
 import com.smartvillage.repository.ComplaintRepository;
@@ -39,6 +40,12 @@ public class ComplaintServiceImpl implements ComplaintService {
             throw new InvalidDataException("Citizen is required");
         }
 
+        // Prevent duplicate titles (case-insensitive)
+        if (complaintRepository.existsByTitleIgnoreCase(complaint.getTitle())) {
+            throw new DuplicateResourceException(
+                    "Complaint with title '" + complaint.getTitle() + "' already exists");
+        }
+
         User citizen = userService.getUserById(complaint.getCitizen().getId());
 
         if (!citizen.isActive()) {
@@ -53,6 +60,14 @@ public class ComplaintServiceImpl implements ComplaintService {
 
     @Override
     public Complaint updateComplaint(long id, Complaint complaint) {
+
+        // Prevent duplicate titles when updating: allow same title for this id but not others
+        if (complaintRepository.existsByTitleIgnoreCaseAndIdNot(complaint.getTitle(), id)) {
+            throw new DuplicateResourceException(
+                    "Complaint with title '" + complaint.getTitle() + "' already exists");
+        }
+
+        complaint.setId(id);
         return complaintRepository.save(complaint);
     }
 

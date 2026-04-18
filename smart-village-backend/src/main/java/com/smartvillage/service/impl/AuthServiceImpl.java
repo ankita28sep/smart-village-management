@@ -78,7 +78,8 @@ public class AuthServiceImpl implements AuthService {
         user.setActive(true);
 
         // Default role
-        user.setRole(UserRole.CITIZEN);
+       user.setRole(UserRole.CITIZEN);
+       
 
         return userRepository.save(user);
     }

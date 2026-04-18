@@ -101,4 +101,11 @@ public class AnnouncementServiceImpl implements AnnouncementService {
     public Page<Announcement> findByActiveTrue(Pageable pageable) {
         return announcementRepository.findByStatus(AnnouncementStatus.ACTIVE, pageable);
     }
+
+    @Override
+    public Announcement changeStatus(long id, AnnouncementStatus status) {
+        Announcement existing = getAnnouncementById(id);
+        existing.setStatus(status);
+        return announcementRepository.save(existing);
+    }
 }

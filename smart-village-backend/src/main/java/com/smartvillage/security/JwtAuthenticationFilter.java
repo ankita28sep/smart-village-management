@@ -9,7 +9,6 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -50,6 +49,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
         }
+        
 
         // Authenticate user
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -72,6 +72,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
+        if (request.getServletPath().contains("/swagger-ui") ||
+        	    request.getServletPath().contains("/v3/api-docs")) {
+        	    filterChain.doFilter(request, response);
+        	    return;
+        	}
 
         filterChain.doFilter(request, response);
     }

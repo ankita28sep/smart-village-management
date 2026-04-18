@@ -20,4 +20,10 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
     Page<Complaint> findByTitleContainingIgnoreCase(String keyword, Pageable pageable);
 
     Page<Complaint> findByCreatedAtAfter(LocalDate since, Pageable pageable);
+
+    // Check for existing complaints with same title (case-insensitive)
+    boolean existsByTitleIgnoreCase(String title);
+
+    // Check for existing complaints with same title excluding a specific id (used on update)
+    boolean existsByTitleIgnoreCaseAndIdNot(String title, long id);
 }

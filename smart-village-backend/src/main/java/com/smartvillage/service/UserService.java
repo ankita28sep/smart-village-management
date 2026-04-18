@@ -12,8 +12,6 @@ public interface UserService {
 
     User updateProfile(User user);
 
-    void deleteUser(long id);
-
     User activeUser(long id);
 
     User blockUser(long id);

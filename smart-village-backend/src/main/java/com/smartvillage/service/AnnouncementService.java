@@ -32,4 +32,7 @@ public interface AnnouncementService {
     Page<Announcement> getAnnouncementsByType(AnnouncementType type, Pageable pageable);
 
     Page<Announcement> getAnnouncementsByStatus(AnnouncementStatus status, Pageable pageable);
+
+    // Activate or inactivate an announcement (change status)
+    Announcement changeStatus(long id, AnnouncementStatus status);
 }
