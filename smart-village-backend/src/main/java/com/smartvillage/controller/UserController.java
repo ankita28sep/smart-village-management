@@ -30,14 +30,7 @@ public class UserController {
 		this.userService = userService;
 	}
 
-	// Assign role to a user (Admin only)
-	@PreAuthorize("hasRole('ADMIN')")
-	@PutMapping("/assign-role/{userId}")
-	public ResponseEntity<UserResponseDto> assignRole(@PathVariable Long userId, @RequestParam UserRole role) {
-		User user = userService.assignRole(userId, role);
-		return ResponseEntity.ok(UserMapper.toDto(user));
-	}
-
+	
 	// Admin updates user details
 	@PreAuthorize("hasRole('ADMIN')")
 	@PutMapping("/admin/update/{id}")

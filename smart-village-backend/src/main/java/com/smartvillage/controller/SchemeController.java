@@ -34,7 +34,7 @@ public class SchemeController {
     }
 
     // Create scheme
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SARPANCH')")
     @PostMapping
     public ResponseEntity<SchemeResponseDto> addScheme(@Valid @RequestBody SchemeRequestDto dto,
                                                        Principal principal) {
@@ -48,7 +48,7 @@ public class SchemeController {
     }
 
     // Update scheme
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SARPANCH')")
     @PutMapping("/{id}")
     public ResponseEntity<SchemeResponseDto> updateScheme(@PathVariable long id,
                                                           @Valid @RequestBody SchemeUpdateDto dto) {
@@ -60,7 +60,7 @@ public class SchemeController {
     }
 
     // Delete scheme
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SARPANCH')")
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteScheme(@PathVariable long id) {
         schemeService.deleteScheme(id);
@@ -68,7 +68,7 @@ public class SchemeController {
     }
 
     // Deactivate scheme
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SARPANCH')")
     @PutMapping("/{id}/deactivate")
     public ResponseEntity<SchemeResponseDto> deactivateScheme(@PathVariable long id) {
         return ResponseEntity.ok(SchemeMapper.toDto(schemeService.deactivateScheme(id)));
@@ -92,7 +92,7 @@ public class SchemeController {
     }
 
     // Get all schemes (ADMIN + PAGINATED)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SARPANCH')")
     @GetMapping
     public ResponseEntity<Page<SchemeResponseDto>> getAllSchemes(Pageable pageable) {
 
@@ -125,7 +125,7 @@ public class SchemeController {
     }
 
     // Filter schemes by eligibility (PAGINATED)
-    @GetMapping("/eligibility")
+    @PostMapping("/eligibility")
     public ResponseEntity<Page<SchemeResponseDto>> findByEligibility(
             @RequestParam(required = false) Integer financialYear,
             @RequestParam(required = false) String religion,

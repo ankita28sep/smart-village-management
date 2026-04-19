@@ -83,7 +83,7 @@ public class SchemeApplicationController {
     }
 
     // UPDATE STATUS (ADMIN/SARPANCH)
-    @PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}/status/{status}")
     public ResponseEntity<SchemeApplicationResponseDto> updateStatus(
             @PathVariable long id,
@@ -116,7 +116,7 @@ public class SchemeApplicationController {
     }
 
     // GET ALL (PAGINATED)
-    @PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<Page<SchemeApplicationResponseDto>> getAll(Pageable pageable) {
         return ResponseEntity.ok(
@@ -154,7 +154,7 @@ public class SchemeApplicationController {
     }
 
     // BY STATUS (PAGINATED)
-    @PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/status/{status}")
     public ResponseEntity<Page<SchemeApplicationResponseDto>> getByStatus(
             @PathVariable ApplicationStatus status,
@@ -167,7 +167,7 @@ public class SchemeApplicationController {
     }
 
     // CANCEL APPLICATION
-    @PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}/cancel")
     public ResponseEntity<SchemeApplicationResponseDto> cancel(@PathVariable long id) {
         return ResponseEntity.ok(

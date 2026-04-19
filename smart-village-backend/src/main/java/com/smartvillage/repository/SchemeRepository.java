@@ -6,10 +6,12 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import com.smartvillage.entity.Scheme;
 
-public interface SchemeRepository extends JpaRepository<Scheme, Long> {
+public interface SchemeRepository extends JpaRepository<Scheme, Long>,
+JpaSpecificationExecutor<Scheme> {
 
     // Check duplicate
     boolean existsByNameIgnoreCase(String name);

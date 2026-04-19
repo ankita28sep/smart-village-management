@@ -14,6 +14,7 @@ import com.smartvillage.exceptions.ResourceNotFoundException;
 import com.smartvillage.repository.SchemeRepository;
 import com.smartvillage.repository.UserRepository;
 import com.smartvillage.service.SchemeService;
+import com.smartvillage.specification.SchemeSpecification;
 
 import jakarta.transaction.Transactional;
 
@@ -127,8 +128,6 @@ public class SchemeServiceImpl implements SchemeService {
         scheme.setActive(false);
         return schemeRepository.save(scheme);
     }
-
-    // FIND BY ELIGIBILITY (PAGINATED)
     @Override
     public Page<Scheme> findByEligibility(Integer financialYear,
                                           String religion,
@@ -138,33 +137,17 @@ public class SchemeServiceImpl implements SchemeService {
                                           String department,
                                           Pageable pageable) {
 
-        Page<Scheme> schemes = schemeRepository.findAll(pageable);
+        var spec = SchemeSpecification.filterByEligibility(
+                financialYear, religion, casteCategory,
+                annualIncome, disability, department
+        );
 
-        return schemes.map(s -> {
-            if (s.getEligibility() == null) return null;
+        Page<Scheme> page = schemeRepository.findAll(spec, pageable);
 
-            boolean match =
-                    (financialYear == null || s.getEligibility().getFinancialYear() == financialYear) &&
-                    (religion == null || religion.isBlank() ||
-                            s.getEligibility().getReligion().equalsIgnoreCase(religion.trim())) &&
-                    (casteCategory == null || casteCategory.isBlank() ||
-                            s.getEligibility().getCasteCategory().equalsIgnoreCase(casteCategory.trim())) &&
-                    (annualIncome == null ||
-                            s.getEligibility().getAnnualIncome() >= annualIncome) &&
-                    (disability == null ||
-                            s.getEligibility().isDisability() == disability) &&
-                    (department == null || department.isBlank() ||
-                            s.getEligibility().getDepartment().equalsIgnoreCase(department.trim()));
+        page.forEach(this::autoExpire);
 
-            if (match) {
-                autoExpire(s);
-                return s;
-            }
-
-            return null;
-        });
+        return page;
     }
-
     // ================= HELPER METHODS =================
 
     private Scheme getSchemeOrThrow(long id) {

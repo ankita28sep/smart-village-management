@@ -219,28 +219,8 @@ public class SchemeApplicationServiceImpl implements SchemeApplicationService {
         }
     }
 
-	@Override
-	public SchemeApplication findByApplicant_IdAndScheme_Id(long applicantId, long schemeId) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+	
 
-	@Override
-	public Page<SchemeApplication> getApplicationsByYear(int year, Pageable pageable) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
-	@Override
-	public Page<SchemeApplication> searchApplicationsByApplicantName(String keyword, Pageable pageable) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Page<SchemeApplication> searchApplicationsBySchemeName(String keyword, Pageable pageable) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 }

@@ -76,7 +76,7 @@ public class ComplaintController {
     }
 
     // Assign handler
-    @PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}/assign/{handlerId}")
     public ResponseEntity<ComplaintResponseDto> assignHandler(
             @PathVariable long id,

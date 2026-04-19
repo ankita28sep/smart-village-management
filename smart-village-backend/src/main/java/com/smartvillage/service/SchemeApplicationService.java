@@ -23,7 +23,7 @@ public interface SchemeApplicationService {
     // GET SINGLE
     SchemeApplication getApplicationById(long applicationId);
 
-    SchemeApplication findByApplicant_IdAndScheme_Id(long applicantId, long schemeId);
+   
 
     // ================= PAGINATED METHODS =================
 
@@ -35,11 +35,7 @@ public interface SchemeApplicationService {
 
     Page<SchemeApplication> getApplicationsByStatus(ApplicationStatus status, Pageable pageable);
 
-    Page<SchemeApplication> getApplicationsByYear(int year, Pageable pageable);
-
-    Page<SchemeApplication> searchApplicationsByApplicantName(String keyword, Pageable pageable);
-
-    Page<SchemeApplication> searchApplicationsBySchemeName(String keyword, Pageable pageable);
+   
 
     // ================= ACTIONS =================
 

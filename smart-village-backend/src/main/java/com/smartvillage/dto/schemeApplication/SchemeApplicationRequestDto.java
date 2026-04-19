@@ -9,9 +9,6 @@ import jakarta.validation.constraints.Positive;
 
 public class SchemeApplicationRequestDto {
 
-    @NotNull(message = "applicantId is required")
-    private Long applicantId;
-
     @NotNull(message = "schemeId is required")
     private Long schemeId;
 
@@ -67,13 +64,6 @@ public class SchemeApplicationRequestDto {
 
     // Getters & Setters
 
-    public Long getApplicantId() {
-        return applicantId;
-    }
-
-    public void setApplicantId(Long applicantId) {
-        this.applicantId = applicantId;
-    }
 
     public Long getSchemeId() {
         return schemeId;
