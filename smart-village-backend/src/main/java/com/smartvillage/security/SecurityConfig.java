@@ -2,6 +2,7 @@ package com.smartvillage.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -41,9 +42,13 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
+        
             .csrf(csrf -> csrf.disable())
 
             .authorizeHttpRequests(auth -> auth
+            		
+            		
+            	    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
             	    .requestMatchers(
             	        "/api/auth/**",
             	        "/api/schemes/active",
@@ -57,6 +62,7 @@ public class SecurityConfig {
             	        "/swagger-ui.html"
             	    ).permitAll()
             	    .anyRequest().authenticated()
+            	    
             	)
 
             .exceptionHandling(ex -> ex

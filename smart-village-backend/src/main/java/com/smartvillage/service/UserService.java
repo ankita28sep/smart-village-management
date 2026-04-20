@@ -28,5 +28,5 @@ public interface UserService {
 
     User getUserByEmail(String email);
 
-    User assignRole(Long userId, UserRole role);
+   
 }

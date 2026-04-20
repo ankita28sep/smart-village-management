@@ -116,7 +116,7 @@ public class SchemeApplicationController {
     }
 
     // GET ALL (PAGINATED)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SARPANCH')")
     @GetMapping
     public ResponseEntity<Page<SchemeApplicationResponseDto>> getAll(Pageable pageable) {
         return ResponseEntity.ok(

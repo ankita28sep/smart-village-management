@@ -28,14 +28,6 @@ public class UserServiceImpl implements UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    // Assign role to user
-    @Override
-    public User assignRole(Long userId, UserRole role) {
-        User user = getAnyUserById(userId);
-        user.setRole(role);
-        return userRepository.save(user);
-    }
-
     // Admin update user (merge fields)
     @Override
     public User updateUser(long id, User user) {
