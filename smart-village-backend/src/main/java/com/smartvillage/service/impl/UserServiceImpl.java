@@ -99,12 +99,7 @@ public class UserServiceImpl implements UserService {
         return user;
     }
 
-    // Get all users (pagination)
-    @Override
-    public Page<User> getAllUsers(Pageable pageable) {
-        return userRepository.findAll(pageable);
-    }
-
+   
     // Get users by role (pagination)
     @Override
     public Page<User> getUserByRole(UserRole role, Pageable pageable) {
@@ -131,6 +126,12 @@ public class UserServiceImpl implements UserService {
         user.setActive(true);
         return userRepository.save(user);
     }
+    // Get all users (pagination)
+    @Override
+    public Page<User> getAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable);
+    }
+
 
     // Block user
     @Override

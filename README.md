@@ -29,7 +29,7 @@ Frontend: In progress
 * View and update user profiles
 * Admin functionalities:
 
-  * Assign roles
+ 
   * Activate or block users
   * View all users
 

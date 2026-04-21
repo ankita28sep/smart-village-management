@@ -43,6 +43,17 @@ public class UserController {
 		return ResponseEntity.ok(UserMapper.toDto(updatedUser));
 	}
 
+	
+
+	// Get active users (pagination)
+	@PreAuthorize("hasRole('ADMIN')")
+	@GetMapping("/active")
+	public ResponseEntity<Page<UserResponseDto>> getActiveUsers(Pageable pageable) {
+
+		return ResponseEntity.ok(userService.getActiveUsers(pageable).map(UserMapper::toDto));
+	}
+	
+
 	// Logged-in user updates own profile
 	@PreAuthorize("isAuthenticated()")
 	@PutMapping("/update-profile")
@@ -74,13 +85,6 @@ public class UserController {
 		return ResponseEntity.ok(UserMapper.toDto(user));
 	}
 
-	// Get all users (pagination)
-	@PreAuthorize("hasRole('ADMIN')")
-	@GetMapping
-	public ResponseEntity<Page<UserResponseDto>> getAllUsers(Pageable pageable) {
-		return ResponseEntity.ok(userService.getAllUsers(pageable).map(UserMapper::toDto));
-	}
-
 	// Get users by role (pagination)
 	@PreAuthorize("hasRole('ADMIN')")
 	@GetMapping("/by-role")
@@ -89,6 +93,14 @@ public class UserController {
 		return ResponseEntity.ok(userService.getUserByRole(role, pageable).map(UserMapper::toDto));
 	}
 
+	// Get all users (pagination)
+	@PreAuthorize("hasRole('ADMIN')")
+	@GetMapping
+	public ResponseEntity<Page<UserResponseDto>> getAllUsers(Pageable pageable) {
+		return ResponseEntity.ok(userService.getAllUsers(pageable).map(UserMapper::toDto));
+	}
+
+
 	// Activate user
 	@PreAuthorize("hasRole('ADMIN')")
 	@PutMapping("/activate/{id}")
@@ -96,20 +108,12 @@ public class UserController {
 		User user = userService.activeUser(id);
 		return ResponseEntity.ok(UserMapper.toDto(user));
 	}
-
 	// Block user
-	@PreAuthorize("hasRole('ADMIN')")
-	@PutMapping("/block/{id}")
-	public ResponseEntity<UserResponseDto> blockUser(@PathVariable long id) {
-		User user = userService.blockUser(id);
-		return ResponseEntity.ok(UserMapper.toDto(user));
-	}
+		@PreAuthorize("hasRole('ADMIN')")
+		@PutMapping("/block/{id}")
+		public ResponseEntity<UserResponseDto> blockUser(@PathVariable long id) {
+			User user = userService.blockUser(id);
+			return ResponseEntity.ok(UserMapper.toDto(user));
+		}
 
-	// Get active users (pagination)
-	@PreAuthorize("hasRole('ADMIN')")
-	@GetMapping("/active")
-	public ResponseEntity<Page<UserResponseDto>> getActiveUsers(Pageable pageable) {
-
-		return ResponseEntity.ok(userService.getActiveUsers(pageable).map(UserMapper::toDto));
-	}
 }

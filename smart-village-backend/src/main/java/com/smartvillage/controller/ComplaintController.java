@@ -86,6 +86,16 @@ public class ComplaintController {
                 ComplaintMapper.toDto(complaintService.assignHandler(id, handlerId))
         );
     }
+    // Get all complaints (pagination)
+    @PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
+    @GetMapping
+    public ResponseEntity<Page<ComplaintResponseDto>> getAllComplaints(Pageable pageable) {
+        return ResponseEntity.ok(
+                complaintService.getAllComplaints(pageable)
+                        .map(ComplaintMapper::toDto)
+        );
+    }
+
 
     // Update status
     @PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
@@ -98,7 +108,8 @@ public class ComplaintController {
                 ComplaintMapper.toDto(complaintService.updateStatus(id, status))
         );
     }
-
+    
+  
     // Get by ID
     @PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
     @GetMapping("/{id}")
@@ -108,15 +119,7 @@ public class ComplaintController {
         );
     }
 
-    // Get all complaints (pagination)
-    @PreAuthorize("hasAnyRole('ADMIN','SARPANCH')")
-    @GetMapping
-    public ResponseEntity<Page<ComplaintResponseDto>> getAllComplaints(Pageable pageable) {
-        return ResponseEntity.ok(
-                complaintService.getAllComplaints(pageable)
-                        .map(ComplaintMapper::toDto)
-        );
-    }
+   
 
     // My complaints
     @PreAuthorize("hasRole('CITIZEN')")

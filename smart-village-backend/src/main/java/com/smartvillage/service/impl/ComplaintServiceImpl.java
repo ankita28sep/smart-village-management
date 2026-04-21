@@ -99,6 +99,12 @@ public class ComplaintServiceImpl implements ComplaintService {
 
         return complaintRepository.save(complaint);
     }
+    // PAGINATED METHODS
+
+    @Override
+    public Page<Complaint> getAllComplaints(Pageable pageable) {
+        return complaintRepository.findAll(pageable);
+    }
 
     // UPDATE STATUS
     @Override
@@ -128,12 +134,7 @@ public class ComplaintServiceImpl implements ComplaintService {
                 .orElseThrow(() -> new ResourceNotFoundException("Complaint", "id", id));
     }
 
-    // PAGINATED METHODS
-
-    @Override
-    public Page<Complaint> getAllComplaints(Pageable pageable) {
-        return complaintRepository.findAll(pageable);
-    }
+   
 
     @Override
     public Page<Complaint> getComplaintByCitizenId(long citizenId, Pageable pageable) {
